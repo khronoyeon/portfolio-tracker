@@ -80,14 +80,6 @@ def main():
             "게시 경과일": {
                 "formula": {"expression": 'dateBetween(now(), prop("업로드 날짜"), "days")'}
             },
-            "일평균 조회수": {
-                "formula": {
-                    "expression": (
-                        'if(dateBetween(now(), prop("업로드 날짜"), "days") < 1, prop("조회수"), '
-                        'round(prop("조회수") / dateBetween(now(), prop("업로드 날짜"), "days")))'
-                    )
-                }
-            },
             "기록 (자동)": {"rich_text": {}},
             "마지막 업데이트": {"date": {}},
         },

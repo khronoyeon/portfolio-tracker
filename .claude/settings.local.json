@@ -14,7 +14,8 @@
       "Bash(gh run *)",
       "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '세부 지표 추가: 증가율·시간당 조회수·주간 증가·참여율·일평균 조회수 *)",
       "Bash(python3 -m py_compile setup_database.py)",
-      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '참여율 제거, 데이터베이스 인라인 생성으로 변경 *)"
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '참여율 제거, 데이터베이스 인라인 생성으로 변경 *)",
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '일평균 조회수 열 제거 *)"
     ]
   }
 }
