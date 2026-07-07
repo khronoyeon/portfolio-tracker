@@ -1,0 +1,99 @@
+# -*- coding: utf-8 -*-
+"""
+노션 데이터를 읽어 대시보드용 암호화 데이터 파일(docs/data.json)을 생성합니다.
+
+- 전체 데이터를 비밀번호 기반 AES-256-GCM으로 암호화 → 비밀번호 없이는 열람 불가
+- docs/index.html(대시보드 앱)이 브라우저에서 비밀번호로 복호화해 표시
+
+필요 환경변수:
+    NOTION_TOKEN, NOTION_DATABASE_ID, SITE_PASSWORD
+"""
+import base64
+import json
+import os
+import sys
+import time
+import urllib.request
+
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+
+import update_stats as core
+
+PBKDF2_ITERATIONS = 200000
+
+
+def collect_items(pages):
+    items = []
+    for page in pages:
+        p = page["properties"]
+
+        def num(name):
+            return (p.get(name) or {}).get("number")
+
+        link = core.prop_url(page, "링크")
+        if not link or num("조회수") is None:
+            continue
+
+        title = "".join(
+            t.get("plain_text", "") for t in (p.get("제목") or {}).get("title") or []
+        ).strip()
+        client = ((p.get("클라이언트") or {}).get("select") or {}).get("name")
+        platform = ((p.get("플랫폼") or {}).get("select") or {}).get("name")
+        date = (((p.get("업로드 날짜") or {}).get("date")) or {}).get("start")
+
+        items.append({
+            "title": title or "(제목 없음)",
+            "client": client or "미지정",
+            "platform": platform or "기타",
+            "url": link,
+            "date": date,
+            "views": num("조회수") or 0,
+            "daily": num("일일 증가"),
+            "weekly": num("주간 증가"),
+            "hourly": num("시간당 조회수"),
+            "rate": num("증가율"),
+            "likes": num("좋아요"),
+            "comments": num("댓글"),
+            "hist": core.load_history(page),
+            "yt": core.youtube_video_id(link),
+        })
+    return items
+
+
+def encrypt(payload, password):
+    salt = os.urandom(16)
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt,
+                     iterations=PBKDF2_ITERATIONS)
+    key = kdf.derive(password.encode("utf-8"))
+    iv = os.urandom(12)
+    ct = AESGCM(key).encrypt(iv, json.dumps(payload, ensure_ascii=False).encode("utf-8"), None)
+    b64 = lambda b: base64.b64encode(b).decode("ascii")
+    return {"v": 1, "iter": PBKDF2_ITERATIONS, "salt": b64(salt), "iv": b64(iv), "ct": b64(ct)}
+
+
+def main():
+    token = os.environ.get("NOTION_TOKEN")
+    db_id = os.environ.get("NOTION_DATABASE_ID")
+    password = os.environ.get("SITE_PASSWORD")
+    if not token or not db_id or not password:
+        print("NOTION_TOKEN, NOTION_DATABASE_ID, SITE_PASSWORD 환경변수가 필요합니다.")
+        sys.exit(1)
+
+    pages = core.notion_query_all(db_id, token)
+    items = collect_items(pages)
+    payload = {
+        "generated": time.strftime("%Y-%m-%d %H:%M", time.localtime()),
+        "items": items,
+    }
+
+    out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs")
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, "data.json"), "w") as f:
+        json.dump(encrypt(payload, password), f)
+    print("docs/data.json 생성 완료 (영상 {}개, 암호화됨)".format(len(items)))
+
+
+if __name__ == "__main__":
+    main()
