@@ -24,14 +24,15 @@ a{color:inherit;text-decoration:none}
 
 .micro{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--tx3);text-transform:uppercase}
 
-/* ---------- 로고 ---------- */
-.logo-chip{display:inline-flex;flex-direction:column;justify-content:center;background:var(--ink);color:var(--neon);border-radius:10px;padding:7px 10px;line-height:.94;font-weight:900;letter-spacing:-.02em;user-select:none}
-.logo-chip span{display:block}
+/* ---------- 로고 (UNICORN /HOUSE) ---------- */
+.logo-uh{display:inline-flex;flex-direction:column;align-items:flex-start;color:var(--ink);line-height:.92;font-weight:900;letter-spacing:-.04em;user-select:none;font-stretch:condensed}
+.logo-uh .l1,.logo-uh .l2{display:flex;align-items:center}
+.logo-uh .sl{display:inline-block;width:.58em;height:.72em;background:currentColor;clip-path:polygon(62% 0,100% 0,38% 100%,0 100%);margin-right:.045em}
 
 /* ---------- 잠금 화면 ---------- */
 #gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:50;background:var(--bg)}
 .gate-card{width:min(360px,90vw);text-align:center}
-.gate-card .logo-chip{font-size:22px;border-radius:16px;padding:13px 18px;margin-bottom:14px}
+.logo-uh.lg{font-size:30px;margin-bottom:18px}
 .gate-sub{color:var(--tx2);font-size:14px;font-weight:500;margin-bottom:36px}
 .gate-card input{width:100%;background:var(--card);border:1px solid var(--line-dark);border-radius:12px;padding:14px 16px;font-size:15px;outline:none;transition:all .15s;text-align:center;font-weight:600}
 .gate-card input:focus{border-color:var(--tx);box-shadow:0 0 0 3px rgba(17,17,16,.06)}
@@ -45,7 +46,7 @@ a{color:inherit;text-decoration:none}
 /* ---------- 레이아웃 ---------- */
 .wrap{max-width:1120px;margin:0 auto;padding:0 clamp(16px,3.5vw,32px) 64px}
 header{display:flex;align-items:center;gap:13px;padding:22px 0 20px}
-header .logo-chip{font-size:10.5px}
+.logo-uh.sm{font-size:14px}
 header .h-title{font-size:15.5px;font-weight:800;letter-spacing:-.02em}
 header .h-sub{margin-left:auto;font-size:12px;color:var(--tx3);font-weight:500;text-align:right}
 header .h-sub b{color:var(--tx2);font-weight:600;font-variant-numeric:tabular-nums}
@@ -175,7 +176,7 @@ footer{text-align:center;color:var(--tx3);font-size:12px;font-weight:500;padding
 
 <div id="gate">
   <div class="gate-card">
-    <div class="logo-chip"><span>UNICORN</span><span>HOUSE</span></div>
+    <div class="logo-uh lg"><span class="l1">UNICORN</span><span class="l2"><span class="sl"></span>HOUSE</span></div>
     <div class="gate-sub">포트폴리오 대시보드</div>
     <input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password">
     <button id="go">들어가기</button>
@@ -186,7 +187,7 @@ footer{text-align:center;color:var(--tx3);font-size:12px;font-weight:500;padding
 <div id="app" style="display:none">
   <div class="wrap">
     <header>
-      <div class="logo-chip"><span>UNICORN</span><span>HOUSE</span></div>
+      <div class="logo-uh sm"><span class="l1">UNICORN</span><span class="l2"><span class="sl"></span>HOUSE</span></div>
       <div class="h-title">포트폴리오 대시보드</div>
       <div class="h-sub">LAST UPDATE<br><b id="gen">-</b></div>
     </header>
