@@ -80,6 +80,7 @@ def main():
             "게시 경과일": {
                 "formula": {"expression": 'dateBetween(now(), prop("업로드 날짜"), "days")'}
             },
+            "썸네일": {"url": {}},
             "기록 (자동)": {"rich_text": {}},
             "마지막 업데이트": {"date": {}},
         },

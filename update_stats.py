@@ -210,6 +210,7 @@ def fetch_instagram_stats(urls, apify_token):
             "comments": item.get("commentsCount"),
             "title": caption[0][:80] if caption else None,
             "published": (item.get("timestamp") or "")[:10] or None,
+            "thumbnail": item.get("displayUrl"),
         }
     return result
 
@@ -274,6 +275,8 @@ def build_properties(page, platform, stats):
         props["좋아요"] = {"number": stats["likes"]}
     if stats.get("comments") is not None:
         props["댓글"] = {"number": stats["comments"]}
+    if stats.get("thumbnail"):
+        props["썸네일"] = {"url": stats["thumbnail"][:1900]}
     if stats.get("title") and prop_title_empty(page, "제목"):
         props["제목"] = {"title": [{"text": {"content": stats["title"][:200]}}]}
     if stats.get("published") and prop_date_empty(page, "업로드 날짜"):

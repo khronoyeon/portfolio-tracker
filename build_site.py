@@ -25,7 +25,29 @@ import update_stats as core
 PBKDF2_ITERATIONS = 200000
 
 
-def collect_items(pages):
+def download_thumbnail(url, code, out_dir):
+    """인스타그램 썸네일을 로컬에 저장 (CDN 링크는 만료되므로 한 번 받아두면 영구 보존)"""
+    thumbs = os.path.join(out_dir, "thumbs")
+    os.makedirs(thumbs, exist_ok=True)
+    path = os.path.join(thumbs, code + ".jpg")
+    if os.path.exists(path) and os.path.getsize(path) > 1000:
+        return "thumbs/" + code + ".jpg"
+    if not url:
+        return None
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=30) as res:
+            data = res.read()
+        if len(data) > 1000:
+            with open(path, "wb") as f:
+                f.write(data)
+            return "thumbs/" + code + ".jpg"
+    except Exception as e:
+        print("  썸네일 다운로드 실패 ({}): {}".format(code, e))
+    return None
+
+
+def collect_items(pages, out_dir):
     items = []
     for page in pages:
         p = page["properties"]
@@ -44,6 +66,11 @@ def collect_items(pages):
         platform = ((p.get("플랫폼") or {}).get("select") or {}).get("name")
         date = (((p.get("업로드 날짜") or {}).get("date")) or {}).get("start")
 
+        th = None
+        code = core.instagram_shortcode(link)
+        if code:
+            th = download_thumbnail(core.prop_url(page, "썸네일"), code, out_dir)
+
         items.append({
             "title": title or "(제목 없음)",
             "client": client or "미지정",
@@ -59,6 +86,7 @@ def collect_items(pages):
             "comments": num("댓글"),
             "hist": core.load_history(page),
             "yt": core.youtube_video_id(link),
+            "th": th,
         })
     return items
 
@@ -84,15 +112,15 @@ def main():
         print("NOTION_TOKEN, NOTION_DATABASE_ID, SITE_PASSWORD 환경변수가 필요합니다.")
         sys.exit(1)
 
+    out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs")
+    os.makedirs(out_dir, exist_ok=True)
+
     pages = core.notion_query_all(db_id, token)
-    items = collect_items(pages)
+    items = collect_items(pages, out_dir)
     payload = {
         "generated": time.strftime("%Y-%m-%d %H:%M", time.localtime()),
         "items": items,
     }
-
-    out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs")
-    os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, "data.json"), "w") as f:
         json.dump(encrypt(payload, password), f)
     print("docs/data.json 생성 완료 (영상 {}개, 암호화됨)".format(len(items)))
