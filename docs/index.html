@@ -92,6 +92,15 @@ header .h-sub b{color:var(--tx2);font-weight:600;font-variant-numeric:tabular-nu
 .rk-row.first .rk-val{color:var(--green)}
 .panel-empty{color:var(--tx3);font-size:13px;font-weight:500;padding:36px 0;text-align:center}
 
+/* 팀 성과 */
+.tm-row{display:flex;align-items:center;gap:12px;padding:12px 0}
+.tm-row+.tm-row{border-top:1px solid var(--line)}
+.tm-name{font-size:13.5px;font-weight:800;min-width:70px}
+.tm-role{font-size:10.5px;font-weight:700;color:var(--tx2);background:var(--well);border-radius:6px;padding:3px 7px}
+.tm-cnt{font-size:12px;font-weight:600;color:var(--tx3);flex:1}
+.tm-avg{font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums}
+.tm-avg small{font-size:11px;color:var(--tx3);font-weight:600;margin-left:3px}
+
 /* 플랫폼 비중 */
 .stack{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--well);margin:6px 0 20px}
 .stack .sg1{background:var(--neon)}
@@ -119,6 +128,7 @@ header .h-sub b{color:var(--tx2);font-weight:600;font-variant-numeric:tabular-nu
 .vc{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:all .16s}
 .vc:hover{border-color:var(--line-dark);box-shadow:0 10px 30px rgba(17,17,16,.07);transform:translateY(-2px)}
 .thumb{position:relative;aspect-ratio:16/9;background:var(--well);overflow:hidden}
+.thumb.v{aspect-ratio:4/5}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb .ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
 .thumb .ph svg{width:30px;height:30px;color:var(--tx3)}
@@ -203,6 +213,12 @@ footer{text-align:center;color:var(--tx3);font-size:12px;font-weight:500;padding
       <div class="panel">
         <div class="panel-top"><h4>플랫폼 비중</h4><span class="micro">총 조회수</span></div>
         <div id="platchart"></div>
+      </div>
+    </div>
+    <div class="insights" style="grid-template-columns:1fr;margin-top:14px">
+      <div class="panel">
+        <div class="panel-top"><h4>팀 성과</h4><span class="micro">평균 조회수 순</span></div>
+        <div id="teamchart"></div>
       </div>
     </div>
 
@@ -322,6 +338,7 @@ function render(){
   renderKpis(arr);
   renderRank(arr);
   renderPlat(arr);
+  renderTeam(arr);
   $("#cnt").textContent=arr.length+"개";
   $("#grid").innerHTML=arr.length?arr.map(card).join(""):'<div class="empty">조건에 맞는 영상이 없어요</div>';
   arr.forEach((it,i)=>{const el=document.getElementById("vc"+i);if(el)el.onclick=()=>openModal(it)});
@@ -369,6 +386,27 @@ function renderPlat(arr){
     <div class="leg"><span class="ldot k"></span><span class="ln">인스타그램</span><span class="lv">${fmt(ig)}</span><span class="lp">${ip}%</span></div>`;
 }
 
+function renderTeam(arr){
+  const agg={};
+  arr.forEach(i=>{
+    [["기획",i.planner],["편집",i.editor]].forEach(([role,name])=>{
+      if(!name)return;
+      const k=name+"|"+role;
+      (agg[k]=agg[k]||{name,role,n:0,sum:0}).n++;
+      agg[k].sum+=i.views;
+    });
+  });
+  const rows=Object.values(agg).map(a=>({...a,avg:Math.round(a.sum/a.n)})).sort((a,b)=>b.avg-a.avg);
+  if(!rows.length){$("#teamchart").innerHTML='<div class="panel-empty">노션에서 영상마다 기획자·편집자를 선택하면 팀원별 성과가 표시돼요</div>';return}
+  $("#teamchart").innerHTML=rows.map(r=>`
+    <div class="tm-row">
+      <span class="tm-name">${esc(r.name)}</span>
+      <span class="tm-role">${r.role}</span>
+      <span class="tm-cnt">영상 ${r.n}개 · 총 ${fmt(r.sum)}</span>
+      <span class="tm-avg">${fmt(r.avg)}<small>평균</small></span>
+    </div>`).join("");
+}
+
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
 
 function thumb(i){
@@ -394,7 +432,7 @@ function spark(h){
 function card(i,idx){
   const rk=S.sort==="views"&&idx<3?`<div class="rank${idx===0?" r1":""}">${idx+1}</div>`:"";
   return`<div class="vc" id="vc${idx}">
-    <div class="thumb">${thumb(i)}
+    <div class="thumb${i.th?" v":""}">${thumb(i)}
       <div class="badge"><span class="bd ${i.platform==="유튜브"?"yt":"ig"}"></span>${i.platform==="유튜브"?"YouTube":"Instagram"}</div>${rk}
     </div>
     <div class="vc-body">

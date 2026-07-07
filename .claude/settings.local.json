@@ -31,7 +31,20 @@
       "Bash(curl -s https://khronoyeon.github.io/portfolio-tracker/)",
       "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '비밀번호 변경 및 한글 NFC 정규화 보강 *)",
       "Bash(curl -s \"https://khronoyeon.github.io/portfolio-tracker/data.json\")",
-      "Bash(python3 -c \"import json,sys; print\\('배포된 salt:', json.load\\(sys.stdin\\)['salt'][:12], '...'\\)\")"
+      "Bash(python3 -c \"import json,sys; print\\('배포된 salt:', json.load\\(sys.stdin\\)['salt'][:12], '...'\\)\")",
+      "Bash(python3 -)",
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '라이트 테마 리디자인: 화이트 배경 + 형광 그린 키컬러 \\(토스 스타일\\) *)",
+      "Bash(git pull *)",
+      "Bash(curl -s \"https://khronoyeon.github.io/portfolio-tracker/?check=$\\(date +%s\\)\")",
+      "Bash(curl -sI \"https://khronoyeon.github.io/portfolio-tracker/\")",
+      "Bash(find ~/Downloads ~/Desktop ~/Documents ~/Pictures \"/Users/yeon/클로드코드\" -maxdepth 4 \\\\\\( -iname \"*unicorn*\" -o -iname \"*logo*\" -o -iname \"*유니콘*\" -o -iname \"*로고*\" \\\\\\) -type f 2>/dev/null | head -20; echo \"---최근 이미지---\"; find ~/Downloads ~/Desktop -maxdepth 2 \\\\\\( -iname \"*.png\" -o -iname \"*.jpg\" -o -iname \"*.jpeg\" -o -iname \"*.webp\" -o -iname \"*.svg\" \\\\\\) -mtime -2 2>/dev/null | head -15)",
+      "Bash(find \"/private/tmp/claude-501\" ~/Library/Caches ~/.claude /tmp /var/folders -maxdepth 6 \\\\\\( -iname \"*.png\" -o -iname \"*.jpg\" -o -iname \"*.jpeg\" -o -iname \"*.webp\" \\\\\\) -mmin -5 2>/dev/null | grep -v -i \"snapshot\\\\|screenshot\\\\|favicon\" | head -10; echo \"---\"; ls -lat \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs/\" | head -6)",
+      "Bash(osascript -e ' *)",
+      "Bash(sips -s format png /tmp/uh_logo.tiff --out \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs/logo.png\")",
+      "Bash(open \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs\")",
+      "Bash(file \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs/\"*.png \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs/\"*.jpg \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs/\"*.svg)",
+      "Bash(sips -g pixelWidth -g pixelHeight -g hasAlpha \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs/유니콘하우스로고.png\")",
+      "Bash(python3 -m py_compile update_stats.py build_site.py monthly_report.py setup_database.py)"
     ]
   }
 }

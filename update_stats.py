@@ -219,6 +219,41 @@ def fetch_instagram_stats(urls, apify_token):
 
 HISTORY_KEEP = 60  # 히스토리 보관 개수 (일 단위 실행 기준 약 두 달치)
 
+# 조회수 돌파 알림 기준 (슬랙)
+MILESTONES = [100_000, 500_000, 1_000_000, 5_000_000, 10_000_000, 50_000_000, 100_000_000]
+
+
+def crossed_milestones(prev_views, new_views):
+    """직전 수집 이후 새로 돌파한 조회수 마일스톤 목록"""
+    if prev_views is None:
+        return []  # 첫 수집(과거 영상 등록 시점)에는 알림 생략
+    return [m for m in MILESTONES if prev_views < m <= new_views]
+
+
+def milestone_label(m):
+    return "{}만".format(m // 10_000) if m < 100_000_000 else "{}억".format(m // 100_000_000)
+
+
+def get_text(page, name):
+    p = page["properties"].get(name) or {}
+    parts = p.get("title") or p.get("rich_text") or []
+    return "".join(t.get("plain_text", "") for t in parts).strip()
+
+
+def get_select(page, name):
+    p = page["properties"].get(name) or {}
+    return ((p.get("select") or {}) or {}).get("name")
+
+
+def send_slack(webhook_url, lines):
+    if not webhook_url or not lines:
+        return
+    try:
+        http_json(webhook_url, method="POST", payload={"text": "\n".join(lines)})
+        print("슬랙 알림 전송: {}건".format(len(lines)))
+    except Exception as e:
+        print("슬랙 알림 실패 (수집은 정상 완료):", e)
+
 
 def build_properties(page, platform, stats):
     """수집한 통계로 노션 페이지 속성 업데이트 payload 생성"""
@@ -240,6 +275,7 @@ def build_properties(page, platform, stats):
 
     prev = hist[-1] if hist else None
     hours_since = (now_ts - prev[0]) / 3600.0 if prev else None
+    milestones = crossed_milestones(prev[1] if prev else None, new_views)
 
     if prev and hours_since >= 1:
         delta = new_views - prev[1]
@@ -281,7 +317,7 @@ def build_properties(page, platform, stats):
         props["제목"] = {"title": [{"text": {"content": stats["title"][:200]}}]}
     if stats.get("published") and prop_date_empty(page, "업로드 날짜"):
         props["업로드 날짜"] = {"date": {"start": stats["published"]}}
-    return props
+    return props, milestones
 
 
 def main():
@@ -332,15 +368,27 @@ def main():
             print("Apify로 인스타그램 데이터 수집 중... (수 분 소요)")
             ig_stats = fetch_instagram_stats([link for _, _, link in ig_pages], apify_token)
 
-    updated, failed = 0, 0
+    updated, failed, alerts = 0, 0, []
+
+    def apply(page, platform, stats, link):
+        nonlocal updated
+        props, milestones = build_properties(page, platform, stats)
+        notion_update_page(page["id"], props, token)
+        updated += 1
+        for m in milestones:
+            title = get_text(page, "제목") or stats.get("title") or link
+            client = get_select(page, "클라이언트") or "미지정"
+            alerts.append(
+                ":tada: *{} 돌파!*  {} ({}) — 현재 {:,}회\n{}".format(
+                    milestone_label(m), title, client, stats["views"], link))
+
     for page, vid in yt_pages:
         stats = yt_stats.get(vid)
         if not stats:
             failed += 1
             print("  유튜브 통계 없음 (삭제/비공개?):", vid)
             continue
-        notion_update_page(page["id"], build_properties(page, "유튜브", stats), token)
-        updated += 1
+        apply(page, "유튜브", stats, prop_url(page, "링크"))
 
     for page, code, link in ig_pages:
         stats = ig_stats.get(code)
@@ -348,9 +396,9 @@ def main():
             failed += 1
             print("  인스타그램 통계 없음 (삭제/비공개?):", link)
             continue
-        notion_update_page(page["id"], build_properties(page, "인스타그램", stats), token)
-        updated += 1
+        apply(page, "인스타그램", stats, link)
 
+    send_slack(os.environ.get("SLACK_WEBHOOK_URL"), alerts)
     print("완료: {}개 업데이트, {}개 실패".format(updated, failed))
     if failed and not updated:
         sys.exit(1)

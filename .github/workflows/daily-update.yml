@@ -26,6 +26,7 @@ jobs:
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: python update_stats.py
 
       - name: 대시보드 데이터 생성 (암호화)

@@ -62,8 +62,9 @@ def collect_items(pages, out_dir):
         title = "".join(
             t.get("plain_text", "") for t in (p.get("제목") or {}).get("title") or []
         ).strip()
-        client = ((p.get("클라이언트") or {}).get("select") or {}).get("name")
-        platform = ((p.get("플랫폼") or {}).get("select") or {}).get("name")
+        sel = lambda name: (((p.get(name) or {}).get("select")) or {}).get("name")
+        client = sel("클라이언트")
+        platform = sel("플랫폼")
         date = (((p.get("업로드 날짜") or {}).get("date")) or {}).get("start")
 
         th = None
@@ -87,6 +88,8 @@ def collect_items(pages, out_dir):
             "hist": core.load_history(page),
             "yt": core.youtube_video_id(link),
             "th": th,
+            "planner": sel("기획자"),
+            "editor": sel("편집자"),
         })
     return items
 
