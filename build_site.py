@@ -13,6 +13,7 @@ import json
 import os
 import sys
 import time
+import unicodedata
 import urllib.request
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -63,6 +64,8 @@ def collect_items(pages):
 
 
 def encrypt(payload, password):
+    # 한글 비밀번호의 자모 분리(NFD) 문제 방지 — 브라우저 쪽도 동일하게 NFC 정규화함
+    password = unicodedata.normalize("NFC", password.strip())
     salt = os.urandom(16)
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt,
                      iterations=PBKDF2_ITERATIONS)

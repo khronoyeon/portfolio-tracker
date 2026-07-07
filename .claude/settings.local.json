@@ -26,7 +26,12 @@
       "Bash(python3 -c \"from cryptography.hazmat.primitives.ciphers.aead import AESGCM; print\\('cryptography OK'\\)\")",
       "Bash(gh secret *)",
       "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '비밀번호 보호 대시보드 추가 \\(GitHub Pages\\) *)",
-      "Bash(gh api *)"
+      "Bash(gh api *)",
+      "Bash(curl -s https://khronoyeon.github.io/portfolio-tracker/data.json)",
+      "Bash(curl -s https://khronoyeon.github.io/portfolio-tracker/)",
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '비밀번호 변경 및 한글 NFC 정규화 보강 *)",
+      "Bash(curl -s \"https://khronoyeon.github.io/portfolio-tracker/data.json\")",
+      "Bash(python3 -c \"import json,sys; print\\('배포된 salt:', json.load\\(sys.stdin\\)['salt'][:12], '...'\\)\")"
     ]
   }
 }
