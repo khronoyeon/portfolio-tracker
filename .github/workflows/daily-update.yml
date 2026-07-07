@@ -1,0 +1,26 @@
+name: 포트폴리오 조회수 업데이트
+
+on:
+  schedule:
+    # UTC 00:00 = 한국시간 오전 9시, 매일 실행
+    - cron: "0 0 * * *"
+  workflow_dispatch: {}   # GitHub에서 수동 실행 버튼
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 조회수 수집 및 노션 업데이트
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: python update_stats.py
