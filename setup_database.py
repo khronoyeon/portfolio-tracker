@@ -54,6 +54,7 @@ def main():
 
     payload = {
         "parent": {"type": "page_id", "page_id": normalize_page_id(parent)},
+        "is_inline": True,
         "icon": {"type": "emoji", "emoji": "📊"},
         "title": [{"type": "text", "text": {"content": "포트폴리오 조회수 트래커"}}],
         "properties": {
@@ -76,14 +77,6 @@ def main():
             "주간 증가": {"number": {"format": "number_with_commas"}},
             "좋아요": {"number": {"format": "number_with_commas"}},
             "댓글": {"number": {"format": "number_with_commas"}},
-            "참여율": {
-                "formula": {
-                    "expression": (
-                        'if(prop("조회수") > 0, '
-                        'round((prop("좋아요") + prop("댓글")) / prop("조회수") * 10000) / 100, 0)'
-                    )
-                }
-            },
             "게시 경과일": {
                 "formula": {"expression": 'dateBetween(now(), prop("업로드 날짜"), "days")'}
             },
