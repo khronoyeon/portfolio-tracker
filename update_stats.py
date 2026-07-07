@@ -3,8 +3,9 @@
 노션 포트폴리오 DB의 모든 영상 링크를 순회하며
 유튜브(공식 API) / 인스타그램(Apify) 조회수·좋아요·댓글을 수집해 업데이트합니다.
 
-- 조회수: 최신 값으로 덮어쓰기
-- 일일 증가: (이번 조회수 - 직전 저장된 조회수), 최초 수집 시에는 비워둠
+- 조회수/좋아요/댓글: 최신 값으로 덮어쓰기
+- 일일 증가·증가율·시간당 조회수: 직전 수집 시점과 비교해 계산
+- 주간 증가: "기록 (자동)" 열에 쌓인 일별 히스토리에서 7일 전 값과 비교
 - 제목/업로드 날짜가 비어 있으면 플랫폼에서 가져온 값으로 자동 입력
 
 필요 환경변수:
@@ -89,6 +90,17 @@ def prop_title_empty(page, name):
 def prop_date_empty(page, name):
     p = page["properties"].get(name) or {}
     return not (p.get("date") or {}).get("start")
+
+
+def load_history(page):
+    """'기록 (자동)' 열의 [[unix시각, 조회수], ...] 히스토리 읽기"""
+    p = page["properties"].get("기록 (자동)") or {}
+    text = "".join(t.get("plain_text", "") for t in p.get("rich_text") or [])
+    try:
+        hist = json.loads(text)
+        return hist if isinstance(hist, list) else []
+    except ValueError:
+        return []
 
 
 def notion_update_page(page_id, properties, token):
@@ -204,18 +216,60 @@ def fetch_instagram_stats(urls, apify_token):
 
 # ---------------------------------------------------------------- 메인
 
+HISTORY_KEEP = 60  # 히스토리 보관 개수 (일 단위 실행 기준 약 두 달치)
+
+
 def build_properties(page, platform, stats):
     """수집한 통계로 노션 페이지 속성 업데이트 payload 생성"""
-    prev_views = prop_number(page, "조회수")
+    now_ts = int(time.time())
     new_views = stats["views"]
+
+    hist = load_history(page)
+    if not hist:
+        # 히스토리 도입 전 데이터: 기존 조회수를 24시간 전 값으로 간주
+        prev_views = prop_number(page, "조회수")
+        if prev_views is not None:
+            hist = [[now_ts - 86400, prev_views]]
 
     props = {
         "조회수": {"number": new_views},
         "플랫폼": {"select": {"name": platform}},
         "마지막 업데이트": {"date": {"start": time.strftime("%Y-%m-%d")}},
     }
-    if prev_views is not None:
-        props["일일 증가"] = {"number": new_views - prev_views}
+
+    prev = hist[-1] if hist else None
+    hours_since = (now_ts - prev[0]) / 3600.0 if prev else None
+
+    if prev and hours_since >= 1:
+        delta = new_views - prev[1]
+        props["일일 증가"] = {"number": delta}
+        props["시간당 조회수"] = {"number": round(delta / hours_since)}
+        if prev[1] > 0:
+            props["증가율"] = {"number": round(delta / prev[1], 4)}
+
+        # 주간 증가: 7일 이전 기록 중 가장 최근 값과 비교 (기록이 2일 이상이면 근사치라도 계산)
+        week_ago = now_ts - 7 * 86400
+        base = None
+        for entry in hist:
+            if entry[0] <= week_ago:
+                base = entry
+        if base is None and now_ts - hist[0][0] >= 2 * 86400:
+            base = hist[0]
+        if base:
+            props["주간 증가"] = {"number": new_views - base[1]}
+
+        hist.append([now_ts, new_views])
+    elif prev:
+        # 1시간 내 재실행: 증가 지표는 유지하고 마지막 기록의 조회수만 갱신
+        hist[-1] = [prev[0], new_views]
+    else:
+        hist.append([now_ts, new_views])
+
+    hist = hist[-HISTORY_KEEP:]
+    props["기록 (자동)"] = {
+        "rich_text": [{"text": {"content": json.dumps(hist, separators=(",", ":"))}}]
+    }
+
     if stats.get("likes") is not None:
         props["좋아요"] = {"number": stats["likes"]}
     if stats.get("comments") is not None:

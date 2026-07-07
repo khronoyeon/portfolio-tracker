@@ -7,7 +7,12 @@
       "Bash(git init *)",
       "Bash(git add *)",
       "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '포트폴리오 조회수 트래커 *)",
-      "Bash(git branch *)"
+      "Bash(git branch *)",
+      "Bash(gh repo *)",
+      "Bash(git push *)",
+      "Bash(gh workflow *)",
+      "Bash(gh run *)",
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '세부 지표 추가: 증가율·시간당 조회수·주간 증가·참여율·일평균 조회수 *)"
     ]
   }
 }

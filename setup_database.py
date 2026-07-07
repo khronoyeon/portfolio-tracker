@@ -71,8 +71,31 @@ def main():
             "업로드 날짜": {"date": {}},
             "조회수": {"number": {"format": "number_with_commas"}},
             "일일 증가": {"number": {"format": "number_with_commas"}},
+            "증가율": {"number": {"format": "percent"}},
+            "시간당 조회수": {"number": {"format": "number_with_commas"}},
+            "주간 증가": {"number": {"format": "number_with_commas"}},
             "좋아요": {"number": {"format": "number_with_commas"}},
             "댓글": {"number": {"format": "number_with_commas"}},
+            "참여율": {
+                "formula": {
+                    "expression": (
+                        'if(prop("조회수") > 0, '
+                        'round((prop("좋아요") + prop("댓글")) / prop("조회수") * 10000) / 100, 0)'
+                    )
+                }
+            },
+            "게시 경과일": {
+                "formula": {"expression": 'dateBetween(now(), prop("업로드 날짜"), "days")'}
+            },
+            "일평균 조회수": {
+                "formula": {
+                    "expression": (
+                        'if(dateBetween(now(), prop("업로드 날짜"), "days") < 1, prop("조회수"), '
+                        'round(prop("조회수") / dateBetween(now(), prop("업로드 날짜"), "days")))'
+                    )
+                }
+            },
+            "기록 (자동)": {"rich_text": {}},
             "마지막 업데이트": {"date": {}},
         },
     }
