@@ -371,7 +371,16 @@ def main():
     updated, failed, alerts = 0, 0, []
 
     def apply(page, platform, stats, link):
-        nonlocal updated
+        nonlocal updated, failed
+        # 플랫폼이 가끔 조회수를 0이나 비정상적으로 낮게 반환하는 수집 오류 방어:
+        # 기존 값 대비 급락이면 이번 수집을 건너뛰고 기존 데이터를 유지
+        prev_views = prop_number(page, "조회수")
+        if prev_views and prev_views > 0:
+            if stats["views"] == 0 or (prev_views > 10000 and stats["views"] < prev_views * 0.3):
+                failed += 1
+                print("  조회수 이상값 감지({:,} → {:,}) — 수집 오류로 판단, 건너뜀: {}".format(
+                    prev_views, stats["views"], link))
+                return
         props, milestones = build_properties(page, platform, stats)
         notion_update_page(page["id"], props, token)
         updated += 1

@@ -109,6 +109,7 @@ header .h-sub b{color:var(--tx2);font-weight:600;font-variant-numeric:tabular-nu
 .pv-row+.pv-row{border-top:1px solid var(--line)}
 .pv-num{font-size:11.5px;font-weight:800;color:var(--tx3);width:20px;font-variant-numeric:tabular-nums}
 .pv-title{flex:1;min-width:0;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-cl,.rk-cl{display:inline-block;font-size:10.5px;font-weight:700;color:var(--neon-deep);background:var(--green-soft);border-radius:6px;padding:2px 7px;margin-left:7px;vertical-align:1px}
 .pv-views{font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums}
 .pv-daily{font-size:12px;font-weight:700;color:var(--green);width:70px;text-align:right;font-variant-numeric:tabular-nums}
 
@@ -174,6 +175,7 @@ header .h-sub b{color:var(--tx2);font-weight:600;font-variant-numeric:tabular-nu
 .m-client{font-size:12px;font-weight:600;color:var(--tx2)}
 .m-x{margin-left:auto;background:none;border:1px solid var(--line);width:32px;height:32px;border-radius:10px;font-size:13px;color:var(--tx2);cursor:pointer;flex-shrink:0;transition:all .15s}
 .m-x:hover{border-color:var(--line-dark);color:var(--tx)}
+.m-back{margin-left:0;margin-right:2px;width:auto;padding:0 12px;font-size:12.5px;font-weight:700}
 .m-title{font-size:19px;font-weight:800;line-height:1.35;margin-bottom:22px;letter-spacing:-.02em}
 .m-chart{border:1px solid var(--line);border-radius:14px;padding:16px 12px 6px;margin-bottom:14px}
 .m-chart h5{font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--tx3);text-transform:uppercase;margin:0 8px 4px}
@@ -393,7 +395,7 @@ function renderRank(arr){
     <div class="rk-row${idx===0?" first":""}">
       <div class="rk-num">${String(idx+1).padStart(2,"0")}</div>
       <div class="rk-main">
-        <div class="rk-name">${esc(i.title)}</div>
+        <div class="rk-name">${esc(i.title)}<span class="rk-cl">${esc(i.client)}</span></div>
         <div class="rk-track"><div class="rk-fill" style="width:${Math.max(4,Math.round(i.daily/max*100))}%"></div></div>
       </div>
       <div class="rk-val">+${fmt(i.daily)}</div>
@@ -468,13 +470,21 @@ function openPersonModal(p){
       ${vids.map((v,i)=>`
         <div class="pv-row" id="pv${i}">
           <span class="pv-num">${String(i+1).padStart(2,"0")}</span>
-          <span class="pv-title">${esc(v.title)}</span>
+          <span class="pv-title">${esc(v.title)}<span class="pv-cl">${esc(v.client)}</span></span>
           <span class="pv-daily">${v.daily!=null&&v.daily>0?"+"+fmt(v.daily):""}</span>
           <span class="pv-views">${fmt(v.views)}</span>
         </div>`).join("")}
     </div>`;
-  vids.forEach((v,i)=>{const el=document.getElementById("pv"+i);if(el)el.onclick=()=>openModal(v)});
+  vids.forEach((v,i)=>{const el=document.getElementById("pv"+i);if(el)el.onclick=()=>openModal(v,()=>openPersonModal(p))});
   $("#modal").classList.add("on");
+}
+
+/* 모달 뒤로 가기 */
+let MODAL_BACK=null;
+function modalBack(){
+  const back=MODAL_BACK;
+  MODAL_BACK=null;
+  if(back)back();
 }
 
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
@@ -536,10 +546,12 @@ function lineChart(h){
     <text class="chart-lbl" x="${W-R}" y="${H-8}" text-anchor="end">${dl(d1)}</text>
   </svg>`;
 }
-function openModal(i){
+function openModal(i,back){
+  MODAL_BACK=back||null;
   const days=i.date?Math.max(1,Math.round((Date.now()-new Date(i.date))/864e5)):null;
   $("#mcard").innerHTML=`
-    <div class="m-top"><div class="m-client">${esc(i.client)} · ${esc(i.platform)}${i.date?" · "+i.date:""}</div>
+    <div class="m-top">${back?'<button class="m-x m-back" onclick="modalBack()">← 뒤로</button>':""}
+      <div class="m-client">${esc(i.client)} · ${esc(i.platform)}${i.date?" · "+i.date:""}</div>
       <button class="m-x" onclick="closeModal()">✕</button></div>
     <div class="m-title">${esc(i.title)}</div>
     <div class="m-chart"><h5>Views Trend</h5>${lineChart(i.hist)}</div>
@@ -555,7 +567,7 @@ function openModal(i){
     <a class="m-link" href="${esc(i.url)}" target="_blank" rel="noopener">영상 보러가기 ↗</a>`;
   $("#modal").classList.add("on");
 }
-function closeModal(){$("#modal").classList.remove("on")}
+function closeModal(){MODAL_BACK=null;$("#modal").classList.remove("on")}
 $("#modal").addEventListener("click",e=>{if(e.target.id==="modal")closeModal()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
 </script>
