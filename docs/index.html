@@ -130,7 +130,7 @@ header .h-sub b{color:var(--tx2);font-weight:600;font-variant-numeric:tabular-nu
 .controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center}
 .controls input[type=search]{flex:1 1 200px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 14px;font-size:13.5px;outline:none;font-weight:500;transition:all .15s}
 .controls input[type=search]:focus{border-color:var(--tx)}
-.controls select{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 32px 9px 13px;font-size:13px;font-weight:600;cursor:pointer;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='9' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2378716C' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.controls select,select.selbox{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:9px 32px 9px 13px;font-size:13px;font-weight:600;cursor:pointer;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='9' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2378716C' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
 .pills{display:flex;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
 .pills button{background:none;border:none;border-radius:7px;padding:6px 13px;font-size:13px;font-weight:600;color:var(--tx2);cursor:pointer;transition:all .12s}
 .pills button.on{background:var(--ink);color:#fff}
@@ -230,12 +230,13 @@ footer{text-align:center;color:var(--tx3);font-size:12px;font-weight:500;padding
     </div>
     <div class="sec"><h2>팀 분석</h2><span class="micro">인원 클릭 시 상세</span></div>
     <div class="panel">
-      <div class="panel-top" style="margin-bottom:18px">
+      <div class="panel-top" style="margin-bottom:18px;align-items:center;flex-wrap:wrap;gap:8px;display:flex">
         <div class="pills" id="roletab">
           <button data-r="planner" class="on">기획자</button>
           <button data-r="editor">편집자</button>
         </div>
-        <span class="micro">평균 조회수 순</span>
+        <select class="selbox" id="teammonth"><option value="">전체 기간</option></select>
+        <span class="micro" style="margin-left:auto">평균 조회수 순</span>
       </div>
       <div class="tm-grid" id="teamgrid"></div>
     </div>
@@ -333,8 +334,10 @@ function boot(){
   const editors=[...new Set(DATA.items.map(i=>i.editor).filter(Boolean))].sort();
   $("#editor").innerHTML='<option value="">모든 편집자</option>'+editors.map(c=>`<option>${esc(c)}</option>`).join("");
   const months=[...new Set(DATA.items.filter(i=>i.date).map(i=>i.date.slice(0,7)))].sort().reverse();
-  $("#month").innerHTML='<option value="">전체 기간</option>'+months.map(m=>{
+  const monthOpts='<option value="">전체 기간</option>'+months.map(m=>{
     const[y,mo]=m.split("-");return`<option value="${m}">${y}년 ${+mo}월</option>`}).join("");
+  $("#month").innerHTML=monthOpts;
+  $("#teammonth").innerHTML=monthOpts;
   $("#q").oninput=e=>{S.q=e.target.value.trim();render()};
   $("#client").onchange=e=>{S.client=e.target.value;render()};
   $("#planner").onchange=e=>{S.planner=e.target.value;render()};
@@ -415,16 +418,18 @@ function renderPlat(arr){
 }
 
 /* ---------- 팀 분석 ---------- */
-let ROLE="planner";
+let ROLE="planner",TEAM_MONTH="";
 const ROLE_LABEL={planner:"기획",editor:"편집"};
 document.querySelectorAll("#roletab button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("#roletab button").forEach(x=>x.classList.remove("on"));
   b.classList.add("on");ROLE=b.dataset.r;renderTeamGrid();
 });
+$("#teammonth").onchange=e=>{TEAM_MONTH=e.target.value;renderTeamGrid()};
 
 function teamAgg(role){
   const m={};
   DATA.items.forEach(i=>{
+    if(TEAM_MONTH&&!(i.date||"").startsWith(TEAM_MONTH))return;
     const name=i[role];
     if(!name)return;
     (m[name]=m[name]||{name,items:[]}).items.push(i);
@@ -440,7 +445,9 @@ function teamAgg(role){
 function renderTeamGrid(){
   const rows=teamAgg(ROLE);
   if(!rows.length){
-    $("#teamgrid").innerHTML='<div class="panel-empty" style="grid-column:1/-1">노션에서 영상마다 '+(ROLE==="planner"?"기획자":"편집자")+'를 선택하면 여기에 인원별 성과가 표시돼요</div>';
+    $("#teamgrid").innerHTML='<div class="panel-empty" style="grid-column:1/-1">'+(TEAM_MONTH
+      ?'선택한 기간에 해당하는 영상이 없어요'
+      :'노션에서 영상마다 '+(ROLE==="planner"?"기획자":"편집자")+'를 선택하면 여기에 인원별 성과가 표시돼요')+'</div>';
     return;
   }
   $("#teamgrid").innerHTML=rows.map((p,idx)=>`
