@@ -4,7 +4,7 @@
 유튜브(공식 API) / 인스타그램(Apify) 조회수·좋아요·댓글을 수집해 업데이트합니다.
 
 - 조회수/좋아요/댓글: 최신 값으로 덮어쓰기
-- 일일 증가·증가율·시간당 조회수: 직전 수집 시점과 비교해 계산
+- 일일 증가·증가율: 24시간 전 시점과 비교해 계산
 - 주간 증가: "기록 (자동)" 열에 쌓인 일별 히스토리에서 7일 전 값과 비교
 - 제목/업로드 날짜가 비어 있으면 플랫폼에서 가져온 값으로 자동 입력
 
@@ -333,7 +333,6 @@ def build_properties(page, platform, stats):
 
     if prev and hours_since >= 1:
         delta_last = new_views - prev[1]
-        props["시간당 조회수"] = {"number": round(delta_last / hours_since)}
 
         # 일일 증가: 24시간 전 시점 대비 (수집 주기가 3시간이든 1주일이든 일관된 의미 유지)
         if hours_since > 36:

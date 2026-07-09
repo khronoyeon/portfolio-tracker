@@ -82,7 +82,6 @@ def collect_items(pages, out_dir):
             "first48": num("초동 조회수"),
             "daily": num("일일 증가"),
             "weekly": num("주간 증가"),
-            "hourly": num("시간당 조회수"),
             "rate": num("증가율"),
             "likes": num("좋아요"),
             "comments": num("댓글"),

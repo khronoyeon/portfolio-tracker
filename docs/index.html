@@ -590,7 +590,6 @@ function openModal(i,back){
       ${i.first48!=null?`<div class="m-stat"><div class="l">초동 조회수 (48시간)</div><div class="v">${full(i.first48)}</div></div>`:""}
       <div class="m-stat"><div class="l">일일 증가</div><div class="v">${i.daily!=null?(i.daily>0?"+":"")+full(i.daily):"-"}</div></div>
       <div class="m-stat"><div class="l">주간 증가</div><div class="v">${i.weekly!=null?(i.weekly>0?"+":"")+full(i.weekly):"-"}</div></div>
-      <div class="m-stat"><div class="l">시간당 조회수</div><div class="v">${full(i.hourly)}</div></div>
       <div class="m-stat"><div class="l">좋아요</div><div class="v">${full(i.likes)}</div></div>
       <div class="m-stat"><div class="l">댓글</div><div class="v">${full(i.comments)}</div></div>
       ${days?`<div class="m-stat"><div class="l">게시 경과</div><div class="v">${days}일</div></div>`:""}
