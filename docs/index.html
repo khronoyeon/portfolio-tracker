@@ -215,6 +215,10 @@ footer{text-align:center;color:var(--tx3);font-size:12px;font-weight:500;padding
       <div class="h-sub">LAST UPDATE<br><b id="gen">-</b></div>
     </header>
 
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:10px">
+      <span class="micro">요약 기간</span>
+      <select class="selbox" id="kpimonth"><option value="">전체 기간</option></select>
+    </div>
     <div class="kpis" id="kpis"></div>
 
     <div class="sec"><h2>인사이트</h2><span class="micro">Insights</span></div>
@@ -334,15 +338,17 @@ function boot(){
   const editors=[...new Set(DATA.items.map(i=>i.editor).filter(Boolean))].sort();
   $("#editor").innerHTML='<option value="">모든 편집자</option>'+editors.map(c=>`<option>${esc(c)}</option>`).join("");
   const months=[...new Set(DATA.items.filter(i=>i.date).map(i=>i.date.slice(0,7)))].sort().reverse();
-  const monthOpts='<option value="">전체 기간</option>'+months.map(m=>{
-    const[y,mo]=m.split("-");return`<option value="${m}">${y}년 ${+mo}월</option>`}).join("");
+  const monthOpts='<option value="">전체 기간</option><option value="7d">최근 7일 업로드</option><option value="30d">최근 30일 업로드</option>'
+    +months.map(m=>{const[y,mo]=m.split("-");return`<option value="${m}">${y}년 ${+mo}월</option>`}).join("");
   $("#month").innerHTML=monthOpts;
   $("#teammonth").innerHTML=monthOpts;
+  $("#kpimonth").innerHTML=monthOpts;
+  $("#kpimonth").onchange=e=>{S.month=e.target.value;$("#month").value=S.month;render()};
   $("#q").oninput=e=>{S.q=e.target.value.trim();render()};
   $("#client").onchange=e=>{S.client=e.target.value;render()};
   $("#planner").onchange=e=>{S.planner=e.target.value;render()};
   $("#editor").onchange=e=>{S.editor=e.target.value;render()};
-  $("#month").onchange=e=>{S.month=e.target.value;render()};
+  $("#month").onchange=e=>{S.month=e.target.value;$("#kpimonth").value=S.month;render()};
   $("#sort").onchange=e=>{S.sort=e.target.value;render()};
   document.querySelectorAll("#plat button").forEach(b=>b.onclick=()=>{
     document.querySelectorAll("#plat button").forEach(x=>x.classList.remove("on"));
@@ -352,13 +358,23 @@ function boot(){
   renderTeamGrid();
 }
 
+function inPeriod(i,per){
+  if(!per)return true;
+  if(per==="7d"||per==="30d"){
+    if(!i.date)return false;
+    const days=per==="7d"?7:30;
+    return (Date.now()-new Date(i.date).getTime())<=days*864e5;
+  }
+  return (i.date||"").startsWith(per);
+}
+
 function filtered(){
   let arr=DATA.items.filter(i=>
     (!S.plat||i.platform===S.plat)&&
     (!S.client||i.client===S.client)&&
     (!S.planner||i.planner===S.planner)&&
     (!S.editor||i.editor===S.editor)&&
-    (!S.month||(i.date||"").startsWith(S.month))&&
+    inPeriod(i,S.month)&&
     (!S.q||(i.title+i.client).toLowerCase().includes(S.q.toLowerCase())));
   const key={views:i=>i.views,daily:i=>i.daily??-1,weekly:i=>i.weekly??-1,date:i=>i.date||""}[S.sort];
   return arr.sort((a,b)=>key(b)>key(a)?1:key(b)<key(a)?-1:0);
@@ -429,7 +445,7 @@ $("#teammonth").onchange=e=>{TEAM_MONTH=e.target.value;renderTeamGrid()};
 function teamAgg(role){
   const m={};
   DATA.items.forEach(i=>{
-    if(TEAM_MONTH&&!(i.date||"").startsWith(TEAM_MONTH))return;
+    if(!inPeriod(i,TEAM_MONTH))return;
     const name=i[role];
     if(!name)return;
     (m[name]=m[name]||{name,items:[]}).items.push(i);
