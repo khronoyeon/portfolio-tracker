@@ -227,6 +227,9 @@ MILESTONES = [100_000, 500_000, 1_000_000, 5_000_000, 10_000_000, 50_000_000, 10
 OLD_AFTER_DAYS = 30
 FULL_COLLECT_WEEKDAY = 0  # 0 = 월요일 (UTC 기준, KST 오전 9시 실행 시 같은 요일)
 
+# 신작 집중 관찰: FRESH_ONLY=1 로 실행하면 이 일수 이내 신작만 수집 (3시간 주기 워크플로용)
+FRESH_DAYS = 3
+
 FIRST48_HOURS = 48  # 초동 조회수 측정 시점 (업로드 후 시간)
 
 
@@ -242,6 +245,15 @@ def is_old_video(page, now_ts):
     date = (((page["properties"].get("업로드 날짜") or {}).get("date")) or {}).get("start")
     ts = upload_ts_of(date) if date else None
     return ts is not None and now_ts - ts > OLD_AFTER_DAYS * 86400
+
+
+def is_fresh_video(page, now_ts):
+    """업로드 FRESH_DAYS 이내 신작 (날짜가 아직 없는 새 링크도 신작으로 취급)"""
+    date = (((page["properties"].get("업로드 날짜") or {}).get("date")) or {}).get("start")
+    if not date:
+        return True
+    ts = upload_ts_of(date)
+    return ts is not None and now_ts - ts <= FRESH_DAYS * 86400
 
 
 def views_at(hist, target_ts):
@@ -317,11 +329,22 @@ def build_properties(page, platform, stats):
     milestones = crossed_milestones(prev[1] if prev else None, new_views)
 
     if prev and hours_since >= 1:
-        delta = new_views - prev[1]
-        props["일일 증가"] = {"number": delta}
-        props["시간당 조회수"] = {"number": round(delta / hours_since)}
-        if prev[1] > 0:
-            props["증가율"] = {"number": round(delta / prev[1], 4)}
+        delta_last = new_views - prev[1]
+        props["시간당 조회수"] = {"number": round(delta_last / hours_since)}
+
+        # 일일 증가: 24시간 전 시점 대비 (수집 주기가 3시간이든 1주일이든 일관된 의미 유지)
+        if hours_since > 36:
+            base = prev[1]
+            daily = round(delta_last * 24 / hours_since)  # 오래된 영상: 하루 평균으로 환산
+        else:
+            target = now_ts - 86400
+            base = views_at(hist, target)
+            if base is None:
+                base = hist[0][1] if hist[0][0] > target else prev[1]
+            daily = new_views - base
+        props["일일 증가"] = {"number": daily}
+        if base and base > 0:
+            props["증가율"] = {"number": round(daily / base, 4)}
 
         # 주간 증가: 7일 이전 기록 중 가장 최근 값과 비교 (기록이 2일 이상이면 근사치라도 계산)
         week_ago = now_ts - 7 * 86400
@@ -387,6 +410,11 @@ def main():
     # 오래된 인스타 영상은 월요일에만 수집 (Apify 비용 절약, FORCE_ALL=1 로 강제 전체 수집)
     now_ts = int(time.time())
     collect_all = os.environ.get("FORCE_ALL") == "1" or time.gmtime().tm_wday == FULL_COLLECT_WEEKDAY
+    fresh_only = os.environ.get("FRESH_ONLY") == "1"  # 3시간 주기 신작 집중 관찰 모드
+
+    if fresh_only:
+        pages = [p for p in pages if is_fresh_video(p, now_ts)]
+        print("신작 모드: 업로드 {}일 이내 영상 {}개만 수집".format(FRESH_DAYS, len(pages)))
 
     yt_pages, ig_pages, skipped, rested = [], [], 0, 0
     for page in pages:
