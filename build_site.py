@@ -91,6 +91,7 @@ def collect_items(pages, out_dir):
             "th": th,
             "planner": sel("기획자"),
             "editor": sel("편집자"),
+            "watch": bool((p.get("집중 관찰") or {}).get("checkbox")),
         })
     return items
 

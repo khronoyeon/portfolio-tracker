@@ -227,8 +227,9 @@ MILESTONES = [100_000, 500_000, 1_000_000, 5_000_000, 10_000_000, 50_000_000, 10
 OLD_AFTER_DAYS = 30
 FULL_COLLECT_WEEKDAY = 0  # 0 = 월요일 (UTC 기준, KST 오전 9시 실행 시 같은 요일)
 
-# 신작 집중 관찰: FRESH_ONLY=1 로 실행하면 이 일수 이내 신작만 수집 (3시간 주기 워크플로용)
-FRESH_DAYS = 3
+# 집중 관찰: FRESH_ONLY=1 로 실행하면 노션에서 "집중 관찰" 체크된 영상만 수집 (3시간 주기)
+# 체크한 채 잊어버려도 업로드 후 이 일수가 지나면 자동으로 체크 해제 (비용 보호)
+WATCH_MAX_DAYS = 7
 
 FIRST48_HOURS = 48  # 초동 조회수 측정 시점 (업로드 후 시간)
 
@@ -247,13 +248,15 @@ def is_old_video(page, now_ts):
     return ts is not None and now_ts - ts > OLD_AFTER_DAYS * 86400
 
 
-def is_fresh_video(page, now_ts):
-    """업로드 FRESH_DAYS 이내 신작 (날짜가 아직 없는 새 링크도 신작으로 취급)"""
+def prop_checkbox(page, name):
+    return bool((page["properties"].get(name) or {}).get("checkbox"))
+
+
+def watch_expired(page, now_ts):
+    """집중 관찰 자동 해제 대상: 업로드 후 WATCH_MAX_DAYS 초과"""
     date = (((page["properties"].get("업로드 날짜") or {}).get("date")) or {}).get("start")
-    if not date:
-        return True
-    ts = upload_ts_of(date)
-    return ts is not None and now_ts - ts <= FRESH_DAYS * 86400
+    ts = upload_ts_of(date) if date else None
+    return ts is not None and now_ts - ts > WATCH_MAX_DAYS * 86400
 
 
 def views_at(hist, target_ts):
@@ -410,11 +413,23 @@ def main():
     # 오래된 인스타 영상은 월요일에만 수집 (Apify 비용 절약, FORCE_ALL=1 로 강제 전체 수집)
     now_ts = int(time.time())
     collect_all = os.environ.get("FORCE_ALL") == "1" or time.gmtime().tm_wday == FULL_COLLECT_WEEKDAY
-    fresh_only = os.environ.get("FRESH_ONLY") == "1"  # 3시간 주기 신작 집중 관찰 모드
+    fresh_only = os.environ.get("FRESH_ONLY") == "1"  # 3시간 주기 집중 관찰 모드
 
     if fresh_only:
-        pages = [p for p in pages if is_fresh_video(p, now_ts)]
-        print("신작 모드: 업로드 {}일 이내 영상 {}개만 수집".format(FRESH_DAYS, len(pages)))
+        watched, expired = [], []
+        for p in pages:
+            if not prop_checkbox(p, "집중 관찰"):
+                continue
+            (expired if watch_expired(p, now_ts) else watched).append(p)
+        for p in expired:
+            notion_update_page(p["id"], {"집중 관찰": {"checkbox": False}}, token)
+            print("  집중 관찰 자동 해제 (업로드 {}일 경과):".format(WATCH_MAX_DAYS),
+                  get_text(p, "제목") or prop_url(p, "링크"))
+        pages = watched
+        print("집중 관찰 모드: 체크된 영상 {}개 수집".format(len(pages)))
+        if not pages:
+            print("완료: 관찰 대상 없음")
+            return
 
     yt_pages, ig_pages, skipped, rested = [], [], 0, 0
     for page in pages:

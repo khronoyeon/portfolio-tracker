@@ -46,7 +46,11 @@
       "Bash(sips -g pixelWidth -g pixelHeight -g hasAlpha \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs/유니콘하우스로고.png\")",
       "Bash(python3 -m py_compile update_stats.py build_site.py monthly_report.py setup_database.py)",
       "Bash(curl -s https://khronoyeon.github.io/portfolio-tracker/?z=__TRACKED_VAR__)",
-      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '신작 3시간 집중 관찰 모드, 일일 증가를 24시간 기준으로 정확화 *)"
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '신작 3시간 집중 관찰 모드, 일일 증가를 24시간 기준으로 정확화 *)",
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '집중 관찰을 노션 체크박스 옵트인으로 변경, 수동 전체 수집 버튼 추가 *)",
+      "Bash(git checkout *)",
+      "Bash(GIT_EDITOR=true git rebase --continue)",
+      "Bash(git rebase *)"
     ]
   }
 }

@@ -149,6 +149,9 @@ header .h-sub b{color:var(--tx2);font-weight:600;font-variant-numeric:tabular-nu
 .badge .bd.yt{background:#FF0000}
 .badge .bd.ig{background:#DD2A7B}
 .rank{position:absolute;top:10px;right:10px;min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:var(--ink);color:#fff;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+.live{position:absolute;bottom:10px;left:10px;display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--ink);color:var(--neon)}
+.live .ldot2{width:6px;height:6px;border-radius:50%;background:var(--neon);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
 .rank.r1{color:var(--neon)}
 .vc-body{padding:16px 18px 17px}
 .vc-client{font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:6px}
@@ -537,6 +540,7 @@ function card(i,idx){
   return`<div class="vc" id="vc${idx}">
     <div class="thumb${i.th?" v":""}">${thumb(i)}
       <div class="badge"><span class="bd ${i.platform==="유튜브"?"yt":"ig"}"></span>${i.platform==="유튜브"?"YouTube":"Instagram"}</div>${rk}
+      ${i.watch?'<div class="live"><span class="ldot2"></span>집중 관찰중</div>':""}
     </div>
     <div class="vc-body">
       <div class="vc-client">${esc(i.client)}</div>

@@ -1,12 +1,7 @@
-name: 집중 관찰 (3시간마다, 체크된 영상만)
+name: 🔄 지금 전체 수집 (수동)
 
 on:
-  schedule:
-    # 매일 3시간 간격 (KST 12시·15시·18시·21시·자정·새벽3시·아침6시)
-    # 오전 9시는 기존 일일 수집이 담당하므로 제외
-    # 노션에서 "집중 관찰" 체크된 영상만 수집 — 체크 없으면 비용 0
-    - cron: "0 3,6,9,12,15,18,21 * * *"
-  workflow_dispatch: {}
+  workflow_dispatch: {}   # GitHub 웹의 Run workflow 버튼으로만 실행
 
 permissions:
   contents: write
@@ -16,9 +11,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  fresh:
+  collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -26,23 +21,17 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: 집중 관찰 체크된 영상만 수집
-        id: collect
+      - name: 전체 수집 (오래된 영상 포함)
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          FRESH_ONLY: "1"
-        run: |
-          python update_stats.py | tee collect.log
-          if grep -q "관찰 대상 없음" collect.log; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          fi
+          FORCE_ALL: "1"
+        run: python update_stats.py
 
       - name: 대시보드 데이터 생성 (암호화)
-        if: steps.collect.outputs.skip != 'true'
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
@@ -52,11 +41,10 @@ jobs:
           python build_site.py
 
       - name: 대시보드 배포
-        if: steps.collect.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs
-          git diff --cached --quiet || git commit -m "신작 데이터 갱신"
+          git diff --cached --quiet || git commit -m "수동 전체 수집"
           git pull --rebase origin main || true
           git push
