@@ -79,6 +79,7 @@ def collect_items(pages, out_dir):
             "url": link,
             "date": date,
             "views": num("조회수") or 0,
+            "first48": num("초동 조회수"),
             "daily": num("일일 증가"),
             "weekly": num("주간 증가"),
             "hourly": num("시간당 조회수"),

@@ -73,6 +73,7 @@ def main():
             },
             "업로드 날짜": {"date": {}},
             "조회수": {"number": {"format": "number_with_commas"}},
+            "초동 조회수": {"number": {"format": "number_with_commas"}},
             "일일 증가": {"number": {"format": "number_with_commas"}},
             "증가율": {"number": {"format": "percent"}},
             "시간당 조회수": {"number": {"format": "number_with_commas"}},

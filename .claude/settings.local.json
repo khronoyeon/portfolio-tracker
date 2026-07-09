@@ -44,7 +44,8 @@
       "Bash(open \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs\")",
       "Bash(file \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs/\"*.png \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs/\"*.jpg \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs/\"*.svg)",
       "Bash(sips -g pixelWidth -g pixelHeight -g hasAlpha \"/Users/yeon/클로드코드/포트폴리오_노션_조회수/docs/유니콘하우스로고.png\")",
-      "Bash(python3 -m py_compile update_stats.py build_site.py monthly_report.py setup_database.py)"
+      "Bash(python3 -m py_compile update_stats.py build_site.py monthly_report.py setup_database.py)",
+      "Bash(curl -s https://khronoyeon.github.io/portfolio-tracker/?z=__TRACKED_VAR__)"
     ]
   }
 }
