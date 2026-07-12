@@ -101,6 +101,28 @@ header .h-sub b{color:var(--tx2);font-weight:600;font-variant-numeric:tabular-nu
 .status.stall{background:rgba(255,255,255,.92);color:var(--tx2)}
 
 /* ---------- 클라이언트 보드 ---------- */
+/* ---------- 명예의 전당 ---------- */
+.hof-top{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
+@media(max-width:720px){.hof-top{grid-template-columns:1fr}}
+.hof-card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;transition:all .16s}
+.hof-card:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(17,17,16,.08)}
+.hof-card.first{border-color:var(--neon);box-shadow:0 0 0 3px var(--green-soft),0 12px 34px rgba(31,224,95,.18)}
+.hof-thumb{aspect-ratio:16/9;background:var(--well);position:relative;overflow:hidden}
+.hof-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.hof-rank{position:absolute;top:10px;left:10px;background:var(--ink);color:var(--neon);font-weight:900;font-size:13px;min-width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.hof-body{padding:14px 16px 16px}
+.hof-title{font-size:13.5px;font-weight:700;line-height:1.4;height:2.8em;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin-bottom:10px}
+.hof-meta{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.hof-views{font-size:19px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.hof-sub{font-size:11px;color:var(--tx3);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hof-row{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 14px;margin-bottom:8px;cursor:pointer;transition:all .13s}
+.hof-row:hover{border-color:var(--line-dark);transform:translateX(2px)}
+.hof-row .hr-num{font-size:12px;font-weight:800;color:var(--tx3);width:22px;font-variant-numeric:tabular-nums}
+.hof-row img{width:56px;height:32px;object-fit:cover;border-radius:6px;background:var(--well);flex-shrink:0}
+.hof-row .hr-title{flex:1;min-width:0;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hof-row .hr-cl{font-size:11px;color:var(--tx3);font-weight:600;white-space:nowrap}
+.hof-row .hr-views{font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+
 .cl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px}
 .cl-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 19px;cursor:pointer;transition:all .15s}
 .cl-card:hover{border-color:var(--line-dark);box-shadow:0 8px 24px rgba(17,17,16,.07);transform:translateY(-2px)}
@@ -306,6 +328,9 @@ footer{text-align:center;color:var(--tx3);font-size:12px;font-weight:500;padding
         <div id="platchart"></div>
       </div>
     </div>
+    <div class="sec"><h2>🏆 명예의 전당</h2><span class="micro">역대 TOP 10</span></div>
+    <div id="hof"></div>
+
     <div class="sec"><h2>클라이언트</h2><span class="micro" id="clcnt"></span></div>
     <div class="cl-grid" id="clgrid"></div>
 
@@ -440,6 +465,7 @@ function boot(){
   });
   applyControls();
   render();
+  renderHof();
   renderClients();
   renderTeamGrid();
 }
@@ -581,6 +607,34 @@ function syncURL(){
   Object.entries(S).forEach(([k,v])=>{if(v&&!(k==="sort"&&v==="views"))p.set(k,v)});
   const h=p.toString();
   history.replaceState(null,"",h?"#"+h:location.pathname+location.search);
+}
+
+/* ---------- 명예의 전당 ---------- */
+function renderHof(){
+  const top=[...DATA.items].sort((a,b)=>b.views-a.views).slice(0,10);
+  if(!top.length){$("#hof").innerHTML='<div class="empty">영상이 쌓이면 역대 TOP 10이 표시돼요</div>';return}
+  const src=i=>i.th?esc(i.th):i.yt?`https://i.ytimg.com/vi/${i.yt}/hqdefault.jpg`:null;
+  const t3=top.slice(0,3),rest=top.slice(3);
+  let html='<div class="hof-top">'+t3.map((i,idx)=>`
+    <div class="hof-card${idx===0?" first":""}" id="hof${idx}">
+      <div class="hof-thumb">${src(i)?`<img loading="lazy" src="${src(i)}" alt="">`:""}
+        <div class="hof-rank">${idx+1}</div></div>
+      <div class="hof-body">
+        <div class="hof-title">${esc(i.title)}</div>
+        <div class="hof-meta"><span class="hof-views">${fmt(i.views)}</span>
+          <span class="hof-sub">${esc(i.client)}${i.first48!=null?" · 초동 "+fmt(i.first48):""}</span></div>
+      </div>
+    </div>`).join("")+"</div>";
+  html+=rest.map((i,idx)=>`
+    <div class="hof-row" id="hof${idx+3}">
+      <span class="hr-num">${String(idx+4).padStart(2,"0")}</span>
+      ${src(i)?`<img loading="lazy" src="${src(i)}" alt="">`:"<img alt=''>"}
+      <span class="hr-title">${esc(i.title)}</span>
+      <span class="hr-cl">${esc(i.client)}</span>
+      <span class="hr-views">${fmt(i.views)}</span>
+    </div>`).join("");
+  $("#hof").innerHTML=html;
+  top.forEach((i,idx)=>{const el=document.getElementById("hof"+idx);if(el)el.onclick=()=>openModal(i)});
 }
 
 /* ---------- 클라이언트 보드 ---------- */
