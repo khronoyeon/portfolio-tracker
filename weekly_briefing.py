@@ -85,37 +85,24 @@ def main():
         for pg in core.notion_query_all(core.CLIENTS_DB_ID, token):
             name = core.get_text(pg, "클라이언트명")
             if name:
-                clients[name] = {
-                    "status": core.get_select(pg, "상태") or "활성",
-                    "quota": (pg["properties"].get("월 계약 수량") or {}).get("number"),
-                }
+                clients[name] = {"status": core.get_select(pg, "상태") or "활성"}
     except Exception as e:
         print("클라이언트 DB 읽기 실패:", e)
 
     cur_month = today.strftime("%Y-%m")
-    dim = (datetime.date(today.year + (today.month == 12), (today.month % 12) + 1, 1)
-           - datetime.timedelta(days=1)).day
-    pace = today.day / dim
 
     warns, client_rows = [], []
     names = sorted(set(list(clients.keys()) + [v["client"] for v in videos]))
     for name in names:
-        info = clients.get(name, {"status": "활성", "quota": None})
+        info = clients.get(name, {"status": "활성"})
         vids = [v for v in videos if v["client"] == name]
         made = len([v for v in vids if (v["date"] or "").startswith(cur_month)])
         dates = sorted(v["date"][:10] for v in vids if v["date"])
         gap = (today - datetime.date.fromisoformat(dates[-1])).days if dates else None
         c_inc = sum(inc_between(v["hist"], t0, t1) for v in vids)
-        if info["status"] == "활성":
-            if gap is not None and gap >= 7:
-                warns.append("{} — 마지막 업로드 후 {}일 경과".format(name, gap))
-            if info["quota"] and made < info["quota"] * pace - 0.99:
-                warns.append("{} — 이번 달 {}/{}개, 계약 페이스 부족".format(name, made, info["quota"]))
-        client_rows.append([
-            name, info["status"],
-            "{}/{}개".format(made, info["quota"]) if info["quota"] else "{}개".format(made),
-            "{:,}".format(c_inc),
-        ])
+        if info["status"] == "활성" and gap is not None and gap >= 7:
+            warns.append("{} — 마지막 업로드 후 {}일 경과".format(name, gap))
+        client_rows.append([name, info["status"], "{}개".format(made), "{:,}".format(c_inc)])
 
     stalled = [v for v in videos
                if v["daily"] is not None and v["date"]

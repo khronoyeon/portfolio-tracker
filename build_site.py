@@ -120,7 +120,6 @@ def collect_clients(token):
             out.append({
                 "name": name,
                 "status": core.get_select(pg, "상태") or "활성",
-                "quota": (p.get("월 계약 수량") or {}).get("number"),
                 "manager": core.get_select(pg, "담당자"),
                 "start": (((p.get("계약 시작일") or {}).get("date")) or {}).get("start"),
             })
