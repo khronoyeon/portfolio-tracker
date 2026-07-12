@@ -710,7 +710,31 @@ function renderClients(){
   }});
 }
 
-/* ---------- 이번 달 워크로드 ---------- */
+/* ---------- 팀 목표 + 이번 달 워크로드 ---------- */
+function teamGoalHtml(){
+  const g=DATA.teamGoal;
+  if(!g||(!g.made&&!g.views))return"";
+  const cur=monthNow();
+  const vids=DATA.items.filter(i=>(i.date||"").startsWith(cur));
+  const made=vids.length;
+  const views=vids.reduce((s,i)=>s+i.views,0);
+  const d=new Date();
+  let html=`<h5>🎯 ${d.getMonth()+1}월 팀 목표</h5>`;
+  if(g.made){
+    const p=Math.min(100,Math.round(made/g.made*100));
+    html+=`<div class="wl-row"><span class="wl-name">제작</span>
+      <div class="wl-track"><div class="wl-fill" style="width:${p}%"></div></div>
+      <span class="wl-val">${made} / ${g.made}개${made>=g.made?" ✅":" ("+p+"%)"}</span></div>`;
+  }
+  if(g.views){
+    const p=Math.min(100,Math.round(views/g.views*100));
+    html+=`<div class="wl-row"><span class="wl-name">조회수</span>
+      <div class="wl-track"><div class="wl-fill" style="width:${p}%"></div></div>
+      <span class="wl-val">${fmt(views)} / ${fmt(g.views)}${views>=g.views?" ✅":" ("+p+"%)"}</span></div>`;
+  }
+  return html+'<div style="height:14px"></div>';
+}
+
 function renderWorkload(){
   const cur=monthNow(),seen={};
   DATA.items.forEach((i,idx)=>{
@@ -718,18 +742,18 @@ function renderWorkload(){
     [i.planner,i.editor].forEach(n=>{if(n)(seen[n]=seen[n]||new Set()).add(idx)});
   });
   const cnt={};Object.keys(seen).forEach(n=>cnt[n]=seen[n].size);
-  const goals={};(DATA.members||[]).forEach(m=>{if(m.name)goals[m.name]=m.goal});
-  const names=[...new Set([...Object.keys(cnt),...Object.keys(goals)])];
-  if(!names.length){$("#workload").innerHTML="";$("#workload").style.display="none";return}
+  const names=Object.keys(cnt);
+  const goal=teamGoalHtml();
+  if(!names.length&&!goal){$("#workload").innerHTML="";$("#workload").style.display="none";return}
   $("#workload").style.display="";
-  const max=Math.max(...names.map(n=>Math.max(cnt[n]||0,goals[n]||0)),1);
+  const max=Math.max(...names.map(n=>cnt[n]),1);
   const d=new Date();
-  $("#workload").innerHTML=`<h5>이번 달 워크로드 <span style="color:var(--tx3);font-weight:600">· ${d.getMonth()+1}월 참여 영상 수${Object.values(goals).some(g=>g)?" / 목표":""}</span></h5>`
-    +names.sort((a,b)=>(cnt[b]||0)-(cnt[a]||0)).map(n=>{
-      const c=cnt[n]||0,g=goals[n];
-      return`<div class="wl-row"><span class="wl-name">${esc(n)}</span>
-        <div class="wl-track"><div class="wl-fill" style="width:${Math.round(c/max*100)}%"></div></div>
-        <span class="wl-val">${c}개${g?" / 목표 "+g+(c>=g?" ✅":""):""}</span></div>`}).join("");
+  $("#workload").innerHTML=goal
+    +(names.length?`<h5>이번 달 워크로드 <span style="color:var(--tx3);font-weight:600">· ${d.getMonth()+1}월 참여 영상 수</span></h5>`
+    +names.sort((a,b)=>cnt[b]-cnt[a]).map(n=>
+      `<div class="wl-row"><span class="wl-name">${esc(n)}</span>
+        <div class="wl-track"><div class="wl-fill" style="width:${Math.round(cnt[n]/max*100)}%"></div></div>
+        <span class="wl-val">${cnt[n]}개</span></div>`).join(""):"");
 }
 
 /* ---------- 영상 상태 자동 판정 ---------- */

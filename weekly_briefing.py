@@ -110,12 +110,27 @@ def main():
     label = "{}월 {}주차".format(this_monday.month, (this_monday.day - 1) // 7 + 1)
     f = "{:,}".format
 
+    # 팀 목표 진행률
+    goal_line = None
+    try:
+        for pg in core.notion_query_all(core.MEMBERS_DB_ID, token):
+            made_goal = (pg["properties"].get("월 제작 목표") or {}).get("number")
+            if made_goal:
+                made_month = len([v for v in videos if (v["date"] or "").startswith(cur_month)])
+                goal_line = "이번 달 팀 목표: 제작 {}/{}개 ({}%)".format(
+                    made_month, made_goal, round(made_month / made_goal * 100))
+                break
+    except Exception as e:
+        print("팀 목표 DB 읽기 실패:", e)
+
     blocks = [
         heading("지난주 요약 ({} ~ {})".format(last_monday.strftime("%m/%d"), last_sunday.strftime("%m/%d")), 2),
         bullet("신규 업로드: {}개".format(len(uploaded))),
         bullet("전체 조회수 증가: +{}회".format(f(week_inc))),
-        heading("지난주 많이 큰 영상 TOP 3", 2),
     ]
+    if goal_line:
+        blocks.append(bullet(goal_line))
+    blocks.append(heading("지난주 많이 큰 영상 TOP 3", 2))
     for rank, v in enumerate(top3, 1):
         inc = inc_between(v["hist"], t0, t1)
         if inc <= 0:

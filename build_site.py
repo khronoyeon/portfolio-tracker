@@ -128,22 +128,18 @@ def collect_clients(token):
     return out
 
 
-def collect_members(token):
-    """팀원 목표 DB → [{name, role, goal}]"""
-    out = []
+def collect_team_goal(token):
+    """팀 목표 DB → {made: 월 제작 목표, views: 월 조회수 목표}"""
     try:
         for pg in core.notion_query_all(core.MEMBERS_DB_ID, token):
-            name = core.get_text(pg, "이름")
-            if not name:
-                continue
-            out.append({
-                "name": name,
-                "role": core.get_select(pg, "역할"),
-                "goal": (pg["properties"].get("월 목표") or {}).get("number"),
-            })
+            p = pg["properties"]
+            made = (p.get("월 제작 목표") or {}).get("number")
+            views = (p.get("월 조회수 목표") or {}).get("number")
+            if made or views:
+                return {"made": made, "views": views}
     except Exception as e:
-        print("팀원 DB 읽기 실패 (건너뜀):", e)
-    return out
+        print("팀 목표 DB 읽기 실패 (건너뜀):", e)
+    return None
 
 
 def main():
@@ -163,7 +159,7 @@ def main():
         "generated": time.strftime("%Y-%m-%d %H:%M", time.localtime()),
         "items": items,
         "clients": collect_clients(token),
-        "members": collect_members(token),
+        "teamGoal": collect_team_goal(token),
     }
     with open(os.path.join(out_dir, "data.json"), "w") as f:
         json.dump(encrypt(payload, password), f)
