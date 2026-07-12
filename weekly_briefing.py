@@ -97,11 +97,7 @@ def main():
         info = clients.get(name, {"status": "활성"})
         vids = [v for v in videos if v["client"] == name]
         made = len([v for v in vids if (v["date"] or "").startswith(cur_month)])
-        dates = sorted(v["date"][:10] for v in vids if v["date"])
-        gap = (today - datetime.date.fromisoformat(dates[-1])).days if dates else None
         c_inc = sum(inc_between(v["hist"], t0, t1) for v in vids)
-        if info["status"] == "활성" and gap is not None and gap >= 7:
-            warns.append("{} — 마지막 업로드 후 {}일 경과".format(name, gap))
         client_rows.append([name, info["status"], "{}개".format(made), "{:,}".format(c_inc)])
 
     stalled = [v for v in videos

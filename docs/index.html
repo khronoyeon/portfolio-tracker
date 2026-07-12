@@ -609,9 +609,8 @@ function renderClients(){
     const prev7=vids.reduce((s,i)=>s+incBetween(i.hist,now-14*86400,now-7*86400),0);
     const trend=prev7>0?(inc7>prev7*1.15?"up":inc7<prev7*0.85?"down":"flat"):(inc7>0?"up":"flat");
     const active=c.status==="활성";
-    const warn=active&&gap!=null&&gap>=7;
-    return {...c,vids:vids.length,total:vids.reduce((s,i)=>s+i.views,0),made,gap,inc7,trend,warn,active};
-  }).sort((a,b)=>(b.warn-a.warn)||(b.active-a.active)||(b.total-a.total));
+    return {...c,vids:vids.length,total:vids.reduce((s,i)=>s+i.views,0),made,gap,inc7,trend,active};
+  }).sort((a,b)=>(b.active-a.active)||(b.total-a.total));
 
   $("#clcnt").textContent=rows.length+"곳";
   if(!rows.length){$("#clgrid").innerHTML='<div class="empty">클라이언트 데이터가 없어요</div>';return}
@@ -619,8 +618,7 @@ function renderClients(){
     const st=c.status==="활성"?"on":c.status==="일시중지"?"pause":"off";
     const tr=c.trend==="up"?"▲ +"+fmt(c.inc7):c.trend==="down"?"▼ +"+fmt(c.inc7):"→ +"+fmt(c.inc7);
     return`<div class="cl-card" id="cl${idx}">
-      <div class="cl-top"><span class="cl-name">${esc(c.name)}</span><span class="cl-st ${st}">${esc(c.status)}</span>
-        ${c.warn?`<span class="cl-warn">⚠️ 업로드 D+${c.gap}</span>`:""}</div>
+      <div class="cl-top"><span class="cl-name">${esc(c.name)}</span><span class="cl-st ${st}">${esc(c.status)}</span></div>
       <div class="cl-quota"><span>이번 달 ${c.made}개 제작</span>
         <span class="cq-r">${c.gap!=null?"마지막 업로드 "+(c.gap===0?"오늘":c.gap+"일 전"):"업로드 기록 없음"}</span></div>
       <div class="cl-meta" style="margin-top:12px"><span>영상 ${c.vids}개 · 총 ${fmt(c.total)}</span>
