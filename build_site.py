@@ -129,14 +129,12 @@ def collect_clients(token):
 
 
 def collect_team_goal(token):
-    """팀 목표 DB → {made: 월 제작 목표, views: 월 조회수 목표}"""
+    """팀 목표 DB → {views: 월 조회수 목표}"""
     try:
         for pg in core.notion_query_all(core.MEMBERS_DB_ID, token):
-            p = pg["properties"]
-            made = (p.get("월 제작 목표") or {}).get("number")
-            views = (p.get("월 조회수 목표") or {}).get("number")
-            if made or views:
-                return {"made": made, "views": views}
+            views = (pg["properties"].get("월 조회수 목표") or {}).get("number")
+            if views:
+                return {"views": views}
     except Exception as e:
         print("팀 목표 DB 읽기 실패 (건너뜀):", e)
     return None

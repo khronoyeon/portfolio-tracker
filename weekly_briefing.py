@@ -110,15 +110,16 @@ def main():
     label = "{}월 {}주차".format(this_monday.month, (this_monday.day - 1) // 7 + 1)
     f = "{:,}".format
 
-    # 팀 목표 진행률
+    # 팀 목표 진행률 (이번 달 발생 조회수 기준)
     goal_line = None
     try:
         for pg in core.notion_query_all(core.MEMBERS_DB_ID, token):
-            made_goal = (pg["properties"].get("월 제작 목표") or {}).get("number")
-            if made_goal:
-                made_month = len([v for v in videos if (v["date"] or "").startswith(cur_month)])
-                goal_line = "이번 달 팀 목표: 제작 {}/{}개 ({}%)".format(
-                    made_month, made_goal, round(made_month / made_goal * 100))
+            views_goal = (pg["properties"].get("월 조회수 목표") or {}).get("number")
+            if views_goal:
+                m_start = core.upload_ts_of(today.strftime("%Y-%m-01"))
+                month_inc = sum(inc_between(v["hist"], m_start, now_ts) for v in videos)
+                goal_line = "이번 달 팀 목표: 조회수 +{:,} / {:,} ({}%)".format(
+                    month_inc, views_goal, round(month_inc / views_goal * 100))
                 break
     except Exception as e:
         print("팀 목표 DB 읽기 실패:", e)

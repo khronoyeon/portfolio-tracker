@@ -713,26 +713,18 @@ function renderClients(){
 /* ---------- 팀 목표 + 이번 달 워크로드 ---------- */
 function teamGoalHtml(){
   const g=DATA.teamGoal;
-  if(!g||(!g.made&&!g.views))return"";
-  const cur=monthNow();
-  const vids=DATA.items.filter(i=>(i.date||"").startsWith(cur));
-  const made=vids.length;
-  const views=vids.reduce((s,i)=>s+i.views,0);
+  if(!g||!g.views)return"";
+  // 이번 달 조회수 증가량 = 모든 영상(신작+기존)이 이번 달에 만들어낸 조회수
   const d=new Date();
-  let html=`<h5>🎯 ${d.getMonth()+1}월 팀 목표</h5>`;
-  if(g.made){
-    const p=Math.min(100,Math.round(made/g.made*100));
-    html+=`<div class="wl-row"><span class="wl-name">제작</span>
+  const monthStart=new Date(d.getFullYear(),d.getMonth(),1).getTime()/1000;
+  const now=Date.now()/1000;
+  const inc=DATA.items.reduce((s,i)=>s+incBetween(i.hist,monthStart,now),0);
+  const p=Math.min(100,Math.round(inc/g.views*100));
+  return`<h5>🎯 ${d.getMonth()+1}월 팀 목표 <span style="color:var(--tx3);font-weight:600">· 이번 달 발생 조회수 기준</span></h5>
+    <div class="wl-row"><span class="wl-name">조회수</span>
       <div class="wl-track"><div class="wl-fill" style="width:${p}%"></div></div>
-      <span class="wl-val">${made} / ${g.made}개${made>=g.made?" ✅":" ("+p+"%)"}</span></div>`;
-  }
-  if(g.views){
-    const p=Math.min(100,Math.round(views/g.views*100));
-    html+=`<div class="wl-row"><span class="wl-name">조회수</span>
-      <div class="wl-track"><div class="wl-fill" style="width:${p}%"></div></div>
-      <span class="wl-val">${fmt(views)} / ${fmt(g.views)}${views>=g.views?" ✅":" ("+p+"%)"}</span></div>`;
-  }
-  return html+'<div style="height:14px"></div>';
+      <span class="wl-val">+${fmt(inc)} / ${fmt(g.views)}${inc>=g.views?" ✅":" ("+p+"%)"}</span></div>
+    <div style="height:14px"></div>`;
 }
 
 function renderWorkload(){
