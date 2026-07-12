@@ -346,6 +346,11 @@ footer{text-align:center;color:var(--tx3);font-size:12px;font-weight:500;padding
     <div class="sec"><h2>클라이언트</h2><span class="micro" id="clcnt"></span></div>
     <div class="cl-grid" id="clgrid"></div>
 
+    <div id="accsec" style="display:none">
+      <div class="sec"><h2>📡 계정 현황</h2><span class="micro">팔로워 · 매주 월요일 갱신</span></div>
+      <div class="panel" id="accs"></div>
+    </div>
+
     <div class="sec"><h2>팀 분석</h2><span class="micro">인원 클릭 시 상세</span></div>
     <div class="panel">
       <div id="workload"></div>
@@ -492,6 +497,7 @@ function boot(){
   render();
   renderHof();
   renderClients();
+  renderAccounts();
   renderTeamGrid();
 }
 
@@ -713,18 +719,48 @@ function renderClients(){
 /* ---------- 팀 목표 + 이번 달 워크로드 ---------- */
 function teamGoalHtml(){
   const g=DATA.teamGoal;
-  if(!g||!g.views)return"";
-  // 이번 달 조회수 증가량 = 모든 영상(신작+기존)이 이번 달에 만들어낸 조회수
+  if(!g||(!g.views&&!g.followers))return"";
   const d=new Date();
   const monthStart=new Date(d.getFullYear(),d.getMonth(),1).getTime()/1000;
   const now=Date.now()/1000;
-  const inc=DATA.items.reduce((s,i)=>s+incBetween(i.hist,monthStart,now),0);
-  const p=Math.min(100,Math.round(inc/g.views*100));
-  return`<h5>🎯 ${d.getMonth()+1}월 팀 목표 <span style="color:var(--tx3);font-weight:600">· 이번 달 발생 조회수 기준</span></h5>
-    <div class="wl-row"><span class="wl-name">조회수</span>
+  let html=`<h5>🎯 ${d.getMonth()+1}월 팀 목표 <span style="color:var(--tx3);font-weight:600">· 이번 달 증가량 기준</span></h5>`;
+  if(g.views){
+    // 모든 영상(신작+기존)이 이번 달 만들어낸 조회수
+    const inc=DATA.items.reduce((s,i)=>s+incBetween(i.hist,monthStart,now),0);
+    const p=Math.min(100,Math.round(inc/g.views*100));
+    html+=`<div class="wl-row"><span class="wl-name">조회수</span>
       <div class="wl-track"><div class="wl-fill" style="width:${p}%"></div></div>
-      <span class="wl-val">+${fmt(inc)} / ${fmt(g.views)}${inc>=g.views?" ✅":" ("+p+"%)"}</span></div>
-    <div style="height:14px"></div>`;
+      <span class="wl-val">+${fmt(inc)} / ${fmt(g.views)}${inc>=g.views?" ✅":" ("+p+"%)"}</span></div>`;
+  }
+  if(g.followers&&(DATA.accounts||[]).length){
+    const inc=DATA.accounts.reduce((s,a)=>{
+      if(a.followers==null)return s;
+      const base=vAt(a.hist,monthStart);
+      return s+(base==null?0:Math.max(0,a.followers-base));
+    },0);
+    const p=Math.min(100,Math.round(inc/g.followers*100));
+    html+=`<div class="wl-row"><span class="wl-name">팔로워</span>
+      <div class="wl-track"><div class="wl-fill" style="width:${p}%"></div></div>
+      <span class="wl-val">+${fmt(inc)} / ${fmt(g.followers)}${inc>=g.followers?" ✅":" ("+p+"%)"}</span></div>`;
+  }
+  return html+'<div style="height:14px"></div>';
+}
+
+/* ---------- 계정 현황 (팔로워) ---------- */
+function renderAccounts(){
+  const accs=(DATA.accounts||[]).filter(a=>a.name);
+  if(!accs.length){$("#accsec").style.display="none";return}
+  $("#accsec").style.display="";
+  const total=accs.reduce((s,a)=>s+(a.followers||0),0);
+  const tw=accs.reduce((s,a)=>s+(a.weekly||0),0);
+  $("#accs").innerHTML=`
+    <div class="panel-top"><h4>총 팔로워 ${fmt(total)}</h4>
+      <span class="micro" style="color:${tw>=0?"var(--neon-deep)":"var(--red)"}">${tw>=0?"▲ +":"▼ "}${fmt(Math.abs(tw))} 이번 주</span></div>`
+    +accs.sort((a,b)=>(b.followers||0)-(a.followers||0)).map(a=>`
+    <div class="leg"><span class="bd ${a.plat==="유튜브"?"yt":"ig"}" style="width:7px;height:7px;border-radius:50%;display:inline-block"></span>
+      <span class="ln">${esc(a.name)}${a.client?` <span style="font-size:10.5px;color:var(--tx3)">· ${esc(a.client)}</span>`:""}</span>
+      <span class="lv">${a.followers!=null?fmt(a.followers):"수집 대기"}</span>
+      <span class="lp" style="width:70px;color:${(a.weekly||0)>0?"var(--neon-deep)":"var(--tx3)"}">${a.weekly!=null?((a.weekly>0?"+":"")+fmt(a.weekly)):""}</span></div>`).join("");
 }
 
 function renderWorkload(){

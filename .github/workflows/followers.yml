@@ -1,0 +1,50 @@
+name: 📡 팔로워 수집 (주 1회)
+
+on:
+  schedule:
+    # 매주 월요일 UTC 00:40 = 한국시간 오전 9시 40분
+    - cron: "40 0 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tracker-update
+  cancel-in-progress: false
+
+jobs:
+  followers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 계정 팔로워 수집
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: python collect_followers.py
+
+      - name: 대시보드 데이터 생성 (암호화)
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
+        run: |
+          pip install --quiet cryptography
+          python build_site.py
+
+      - name: 대시보드 배포
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs
+          git diff --cached --quiet || git commit -m "팔로워 데이터 갱신"
+          git pull --rebase origin main || true
+          git push

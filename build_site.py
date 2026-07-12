@@ -129,15 +129,39 @@ def collect_clients(token):
 
 
 def collect_team_goal(token):
-    """팀 목표 DB → {views: 월 조회수 목표}"""
+    """팀 목표 DB → {views: 월 조회수 목표, followers: 월 팔로워 증가 목표}"""
     try:
         for pg in core.notion_query_all(core.MEMBERS_DB_ID, token):
-            views = (pg["properties"].get("월 조회수 목표") or {}).get("number")
-            if views:
-                return {"views": views}
+            p = pg["properties"]
+            views = (p.get("월 조회수 목표") or {}).get("number")
+            followers = (p.get("월 팔로워 증가 목표") or {}).get("number")
+            if views or followers:
+                return {"views": views, "followers": followers}
     except Exception as e:
         print("팀 목표 DB 읽기 실패 (건너뜀):", e)
     return None
+
+
+def collect_accounts(token):
+    """계정 관리 DB → [{name, plat, followers, weekly, hist}]"""
+    out = []
+    try:
+        for pg in core.notion_query_all(core.ACCOUNTS_DB_ID, token):
+            followers = (pg["properties"].get("팔로워") or {}).get("number")
+            name = core.get_text(pg, "계정명") or (core.prop_url(pg, "링크") or "")
+            if not name:
+                continue
+            out.append({
+                "name": name,
+                "plat": core.get_select(pg, "플랫폼"),
+                "client": core.get_select(pg, "클라이언트"),
+                "followers": followers,
+                "weekly": (pg["properties"].get("주간 증감") or {}).get("number"),
+                "hist": core.load_history(pg),
+            })
+    except Exception as e:
+        print("계정 DB 읽기 실패 (건너뜀):", e)
+    return out
 
 
 def main():
@@ -158,6 +182,7 @@ def main():
         "items": items,
         "clients": collect_clients(token),
         "teamGoal": collect_team_goal(token),
+        "accounts": collect_accounts(token),
     }
     with open(os.path.join(out_dir, "data.json"), "w") as f:
         json.dump(encrypt(payload, password), f)
