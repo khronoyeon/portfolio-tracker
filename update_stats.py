@@ -26,6 +26,10 @@ import urllib.request
 
 NOTION_API = "https://api.notion.com/v1"
 NOTION_VERSION = "2022-06-28"
+
+# 관리용 보조 데이터베이스 (setup 시 생성됨)
+CLIENTS_DB_ID = "39b1e1fbafb681d2a1b6d31b9f41d16e"   # 🏢 클라이언트 관리
+MEMBERS_DB_ID = "39b1e1fbafb681cba2eac5968552cfdd"   # 👥 팀원 목표
 APIFY_ACTOR = "apify~instagram-scraper"
 APIFY_POLL_INTERVAL = 15      # 초
 APIFY_TIMEOUT = 15 * 60       # 최대 15분 대기

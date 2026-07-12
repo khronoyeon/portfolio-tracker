@@ -108,6 +108,45 @@ def encrypt(payload, password):
     return {"v": 1, "iter": PBKDF2_ITERATIONS, "salt": b64(salt), "iv": b64(iv), "ct": b64(ct)}
 
 
+def collect_clients(token):
+    """클라이언트 관리 DB → [{name, status, quota, manager, start}]"""
+    out = []
+    try:
+        for pg in core.notion_query_all(core.CLIENTS_DB_ID, token):
+            name = core.get_text(pg, "클라이언트명")
+            if not name:
+                continue
+            p = pg["properties"]
+            out.append({
+                "name": name,
+                "status": core.get_select(pg, "상태") or "활성",
+                "quota": (p.get("월 계약 수량") or {}).get("number"),
+                "manager": core.get_select(pg, "담당자"),
+                "start": (((p.get("계약 시작일") or {}).get("date")) or {}).get("start"),
+            })
+    except Exception as e:
+        print("클라이언트 DB 읽기 실패 (건너뜀):", e)
+    return out
+
+
+def collect_members(token):
+    """팀원 목표 DB → [{name, role, goal}]"""
+    out = []
+    try:
+        for pg in core.notion_query_all(core.MEMBERS_DB_ID, token):
+            name = core.get_text(pg, "이름")
+            if not name:
+                continue
+            out.append({
+                "name": name,
+                "role": core.get_select(pg, "역할"),
+                "goal": (pg["properties"].get("월 목표") or {}).get("number"),
+            })
+    except Exception as e:
+        print("팀원 DB 읽기 실패 (건너뜀):", e)
+    return out
+
+
 def main():
     token = os.environ.get("NOTION_TOKEN")
     db_id = os.environ.get("NOTION_DATABASE_ID")
@@ -124,6 +163,8 @@ def main():
     payload = {
         "generated": time.strftime("%Y-%m-%d %H:%M", time.localtime()),
         "items": items,
+        "clients": collect_clients(token),
+        "members": collect_members(token),
     }
     with open(os.path.join(out_dir, "data.json"), "w") as f:
         json.dump(encrypt(payload, password), f)

@@ -100,6 +100,39 @@ header .h-sub b{color:var(--tx2);font-weight:600;font-variant-numeric:tabular-nu
 .status.hot{background:var(--neon);color:#08260F;box-shadow:0 4px 14px rgba(31,224,95,.45)}
 .status.stall{background:rgba(255,255,255,.92);color:var(--tx2)}
 
+/* ---------- 클라이언트 보드 ---------- */
+.cl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px}
+.cl-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 19px;cursor:pointer;transition:all .15s}
+.cl-card:hover{border-color:var(--line-dark);box-shadow:0 8px 24px rgba(17,17,16,.07);transform:translateY(-2px)}
+.cl-top{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.cl-name{font-size:15px;font-weight:800;letter-spacing:-.01em}
+.cl-st{font-size:10px;font-weight:800;border-radius:6px;padding:3px 8px}
+.cl-st.on{background:var(--green-soft);color:var(--neon-deep)}
+.cl-st.pause{background:#FFF4D6;color:#9A6B00}
+.cl-st.off{background:var(--well);color:var(--tx3)}
+.cl-warn{margin-left:auto;font-size:10.5px;font-weight:800;color:#C2410C;background:#FFF0E6;border-radius:6px;padding:3px 8px;white-space:nowrap}
+.cl-quota{font-size:12.5px;font-weight:700;display:flex;justify-content:space-between;align-items:baseline}
+.cl-quota .cq-r{font-size:11px;color:var(--tx3);font-weight:600}
+.cl-quota .cq-r.behind{color:#B45309}
+.cl-quota .cq-r.done{color:var(--neon-deep)}
+.cl-bar{height:6px;border-radius:999px;background:var(--well);overflow:hidden;margin:8px 0 12px}
+.cl-fill{height:100%;border-radius:999px;background:var(--neon);transition:width .4s}
+.cl-fill.behind{background:#F59E0B}
+.cl-meta{font-size:11.5px;color:var(--tx3);font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.cl-trend{font-size:12px;font-weight:800}
+.cl-trend.up{color:var(--neon-deep)}
+.cl-trend.down{color:var(--red)}
+.cl-trend.flat{color:var(--tx3)}
+
+/* ---------- 워크로드 ---------- */
+.wl-row{display:flex;align-items:center;gap:12px;padding:7px 0}
+.wl-name{font-size:12.5px;font-weight:700;width:70px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wl-track{flex:1;height:8px;border-radius:999px;background:var(--well);overflow:hidden}
+.wl-fill{height:100%;background:var(--neon);border-radius:999px}
+.wl-val{font-size:11.5px;font-weight:700;color:var(--tx2);width:110px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+#workload{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:18px}
+#workload h5{font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:8px}
+
 /* ---------- 인사이트 ---------- */
 .insights{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px}
 @media(max-width:860px){.insights{grid-template-columns:minmax(0,1fr)}}
@@ -273,8 +306,12 @@ footer{text-align:center;color:var(--tx3);font-size:12px;font-weight:500;padding
         <div id="platchart"></div>
       </div>
     </div>
+    <div class="sec"><h2>클라이언트</h2><span class="micro" id="clcnt"></span></div>
+    <div class="cl-grid" id="clgrid"></div>
+
     <div class="sec"><h2>팀 분석</h2><span class="micro">인원 클릭 시 상세</span></div>
     <div class="panel">
+      <div id="workload"></div>
       <div class="panel-top" style="margin-bottom:18px;align-items:center;flex-wrap:wrap;gap:8px;display:flex">
         <div class="pills" id="roletab">
           <button data-r="planner" class="on">기획자</button>
@@ -403,6 +440,7 @@ function boot(){
   });
   applyControls();
   render();
+  renderClients();
   renderTeamGrid();
 }
 
@@ -545,6 +583,84 @@ function syncURL(){
   history.replaceState(null,"",h?"#"+h:location.pathname+location.search);
 }
 
+/* ---------- 클라이언트 보드 ---------- */
+function vAt(h,t){let v=null;for(const e of h||[]){if(e[0]<=t)v=e[1];else break}return v}
+function incBetween(h,t0,t1){
+  if(!h||!h.length)return 0;
+  const b=vAt(h,t1);if(b==null)return 0;
+  let a=vAt(h,t0);
+  if(a==null)a=h[0][0]<=t1?h[0][1]:null;
+  return a==null?0:Math.max(0,b-a);
+}
+function monthNow(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")}
+
+function renderClients(){
+  const byName={};
+  (DATA.clients||[]).forEach(c=>byName[c.name]={...c});
+  DATA.items.forEach(i=>{if(!byName[i.client])byName[i.client]={name:i.client,status:"활성",quota:null}});
+  const now=Date.now()/1000,cur=monthNow();
+  const today=new Date(),dim=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
+  const pace=today.getDate()/dim;
+
+  const rows=Object.values(byName).map(c=>{
+    const vids=DATA.items.filter(i=>i.client===c.name);
+    const made=vids.filter(i=>(i.date||"").startsWith(cur)).length;
+    const lastDate=vids.map(i=>i.date).filter(Boolean).sort().pop();
+    const gap=lastDate?Math.floor((Date.now()-new Date(lastDate))/864e5):null;
+    const inc7=vids.reduce((s,i)=>s+incBetween(i.hist,now-7*86400,now),0);
+    const prev7=vids.reduce((s,i)=>s+incBetween(i.hist,now-14*86400,now-7*86400),0);
+    const trend=prev7>0?(inc7>prev7*1.15?"up":inc7<prev7*0.85?"down":"flat"):(inc7>0?"up":"flat");
+    const active=c.status==="활성";
+    const behind=active&&c.quota&&made<c.quota*pace-0.99;
+    const warn=active&&((gap!=null&&gap>=7)||behind);
+    return {...c,vids:vids.length,total:vids.reduce((s,i)=>s+i.views,0),made,gap,inc7,trend,behind,warn,active};
+  }).sort((a,b)=>(b.warn-a.warn)||(b.active-a.active)||(b.total-a.total));
+
+  $("#clcnt").textContent=rows.length+"곳";
+  if(!rows.length){$("#clgrid").innerHTML='<div class="empty">클라이언트 데이터가 없어요</div>';return}
+  $("#clgrid").innerHTML=rows.map((c,idx)=>{
+    const st=c.status==="활성"?"on":c.status==="일시중지"?"pause":"off";
+    const quota=c.quota
+      ?`<div class="cl-quota"><span>이번 달 ${c.made} / ${c.quota}개</span>
+         <span class="cq-r ${c.made>=c.quota?"done":c.behind?"behind":""}">${c.made>=c.quota?"✅ 계약 완료":c.behind?"⏳ 페이스 부족":"진행 중"}</span></div>
+       <div class="cl-bar"><div class="cl-fill${c.behind?" behind":""}" style="width:${Math.min(100,c.quota?c.made/c.quota*100:0)}%"></div></div>`
+      :`<div class="cl-quota"><span>이번 달 ${c.made}개 제작</span><span class="cq-r">계약 수량 미입력</span></div><div class="cl-bar"><div class="cl-fill" style="width:0"></div></div>`;
+    const tr=c.trend==="up"?"▲ +"+fmt(c.inc7):c.trend==="down"?"▼ +"+fmt(c.inc7):"→ +"+fmt(c.inc7);
+    return`<div class="cl-card" id="cl${idx}">
+      <div class="cl-top"><span class="cl-name">${esc(c.name)}</span><span class="cl-st ${st}">${esc(c.status)}</span>
+        ${c.warn?`<span class="cl-warn">⚠️ ${c.gap!=null&&c.gap>=7?"업로드 D+"+c.gap:"페이스 부족"}</span>`:""}</div>
+      ${quota}
+      <div class="cl-meta"><span>영상 ${c.vids}개 · 총 ${fmt(c.total)}</span>
+        <span class="cl-trend ${c.trend}">${tr} <small style="font-weight:600;color:var(--tx3)">7일</small></span></div>
+    </div>`}).join("");
+  rows.forEach((c,idx)=>{const el=document.getElementById("cl"+idx);if(el)el.onclick=()=>{
+    S.client=c.name;applyControls();render();
+    document.getElementById("grid").scrollIntoView({behavior:"smooth",block:"start"});
+  }});
+}
+
+/* ---------- 이번 달 워크로드 ---------- */
+function renderWorkload(){
+  const cur=monthNow(),seen={};
+  DATA.items.forEach((i,idx)=>{
+    if(!(i.date||"").startsWith(cur))return;
+    [i.planner,i.editor].forEach(n=>{if(n)(seen[n]=seen[n]||new Set()).add(idx)});
+  });
+  const cnt={};Object.keys(seen).forEach(n=>cnt[n]=seen[n].size);
+  const goals={};(DATA.members||[]).forEach(m=>{if(m.name)goals[m.name]=m.goal});
+  const names=[...new Set([...Object.keys(cnt),...Object.keys(goals)])];
+  if(!names.length){$("#workload").innerHTML="";$("#workload").style.display="none";return}
+  $("#workload").style.display="";
+  const max=Math.max(...names.map(n=>Math.max(cnt[n]||0,goals[n]||0)),1);
+  const d=new Date();
+  $("#workload").innerHTML=`<h5>이번 달 워크로드 <span style="color:var(--tx3);font-weight:600">· ${d.getMonth()+1}월 참여 영상 수${Object.values(goals).some(g=>g)?" / 목표":""}</span></h5>`
+    +names.sort((a,b)=>(cnt[b]||0)-(cnt[a]||0)).map(n=>{
+      const c=cnt[n]||0,g=goals[n];
+      return`<div class="wl-row"><span class="wl-name">${esc(n)}</span>
+        <div class="wl-track"><div class="wl-fill" style="width:${Math.round(c/max*100)}%"></div></div>
+        <span class="wl-val">${c}개${g?" / 목표 "+g+(c>=g?" ✅":""):""}</span></div>`}).join("");
+}
+
 /* ---------- 영상 상태 자동 판정 ---------- */
 function statusOf(i){
   if(i.daily==null||!i.hist||i.hist.length<3)return null;
@@ -628,6 +744,7 @@ function teamAgg(role){
 }
 
 function renderTeamGrid(){
+  renderWorkload();
   const rows=teamAgg(ROLE);
   if(!rows.length){
     $("#teamgrid").innerHTML='<div class="panel-empty" style="grid-column:1/-1">'+(TEAM_MONTH
@@ -645,6 +762,21 @@ function renderTeamGrid(){
   rows.forEach((p,idx)=>{const el=document.getElementById("tm"+idx);if(el)el.onclick=()=>openPersonModal(p)});
 }
 
+function personMonthly(p){
+  const byM={};
+  p.items.forEach(i=>{if(i.date)(byM[i.date.slice(0,7)]=byM[i.date.slice(0,7)]||[]).push(i)});
+  const months=Object.keys(byM).sort().slice(-6);
+  if(months.length<2)return"";
+  const rows=months.map(m=>{
+    const vs=byM[m];return{m,n:vs.length,avg:Math.round(vs.reduce((s,i)=>s+i.views,0)/vs.length)}
+  });
+  const max=Math.max(...rows.map(r=>r.avg),1);
+  return`<div class="m-chart" style="padding:16px 16px 10px;margin-bottom:14px"><h5>월별 평균 조회수</h5>
+    ${rows.map(r=>`<div class="wl-row"><span class="wl-name">${+r.m.slice(5)}월</span>
+      <div class="wl-track"><div class="wl-fill" style="width:${Math.round(r.avg/max*100)}%"></div></div>
+      <span class="wl-val">${fmt(r.avg)} · ${r.n}개</span></div>`).join("")}</div>`;
+}
+
 function openPersonModal(p){
   const vids=[...p.items].sort((a,b)=>b.views-a.views);
   $("#mcard").innerHTML=`
@@ -657,6 +789,7 @@ function openPersonModal(p){
       <div class="m-stat"><div class="l">평균 조회수</div><div class="v">${fmt(p.avg)}</div></div>
       <div class="m-stat"><div class="l">오늘 하루 증가</div><div class="v">+${fmt(p.daily)}</div></div>
     </div>
+    ${personMonthly(p)}
     <div class="m-chart" style="padding:14px 12px">
       <h5>담당 영상 (조회수 순 · 클릭 시 상세)</h5>
       ${vids.map((v,i)=>`

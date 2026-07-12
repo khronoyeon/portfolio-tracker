@@ -1,0 +1,25 @@
+name: 📬 주간 브리핑
+
+on:
+  schedule:
+    # 매주 월요일 UTC 00:20 = 한국시간 오전 9시 20분 (일일 수집 직후)
+    - cron: "20 0 * * 1"
+  workflow_dispatch: {}
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 주간 브리핑 노션에 생성
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python weekly_briefing.py
