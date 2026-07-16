@@ -64,7 +64,28 @@
       "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '팀원별 입장 코드\\(봉투 암호화\\) + 접속 기록 서버 함수 *)",
       "Bash(curl -s \"https://unicornhouse-portfolio.vercel.app/data.json\")",
       "Bash(python3 -c \"import json,sys; b=json.load\\(sys.stdin\\); print\\('버셀 반영: v'+str\\(b.get\\('v'\\)\\), '| wraps:', [w['name'] for w in b.get\\('wraps',[]\\)]\\)\")",
-      "Bash(curl -s -X POST \"https://unicornhouse-portfolio.vercel.app/api/log\" -H \"Content-Type: application/json\" -d '{\"name\":\"테스트\"}')"
+      "Bash(curl -s -X POST \"https://unicornhouse-portfolio.vercel.app/api/log\" -H \"Content-Type: application/json\" -d '{\"name\":\"테스트\"}')",
+      "Bash(npx -y vercel login khronox.plus@gmail.com)",
+      "Bash(npx -y vercel whoami)",
+      "Bash(npx -y vercel link --yes --project unicornhouse-portfolio)",
+      "Bash(npx -y vercel env add NOTION_TOKEN production)",
+      "Bash(npx -y vercel env add LOG_DB_ID production)",
+      "Bash(npx -y vercel env ls production)",
+      "Bash(npx -y vercel redeploy https://unicornhouse-portfolio.vercel.app)",
+      "Bash(npx -y vercel env ls)",
+      "Bash(npx -y vercel ls unicornhouse-portfolio)",
+      "Bash(npx -y vercel --prod --yes)",
+      "Bash(curl -s -X POST \"https://unicornhouse-portfolio.vercel.app/api/log\" -H \"Content-Type: application/json\" -d '{\"name\":\"연결 테스트\"}')",
+      "Bash(npx -y vercel inspect unicornhouse-portfolio.vercel.app)",
+      "Bash(npx -y vercel project ls)",
+      "Bash(npx -y vercel link --yes --project unicornhouse-portfolio-tracker)",
+      "Bash(curl -s -X POST \"https://unicornhouse-portfolio.vercel.app/api/log\" -H \"Content-Type: application/json\" -H \"User-Agent: Mozilla/5.0 \\(Macintosh; Intel Mac OS X\\)\" -d '{\"name\":\"연결 테스트\"}')",
+      "Bash(npx -y vercel project rm unicornhouse-portfolio --yes)",
+      "Bash(python3 -c \"import json,sys; b=json.load\\(sys.stdin\\); print\\('메인 도메인 데이터: v'+str\\(b['v']\\), '| 자물쇠:', [w['name'] for w in b['wraps']]\\)\")",
+      "Bash(npx -y vercel project rm unicornhouse-portfolio)",
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '명예의 전당을 인스타그램·유튜브 플랫폼별로 분리 *)",
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '전체 수집: 영상 113개 반영 *)",
+      "Bash(curl -s \"https://unicornhouse-portfolio.vercel.app/data.json\" -o /tmp/d.json)"
     ]
   }
 }
