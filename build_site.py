@@ -96,17 +96,43 @@ def collect_items(pages, out_dir):
     return items
 
 
-def encrypt(payload, password):
-    # 한글 비밀번호의 자모 분리(NFD) 문제 방지 — 브라우저 쪽도 동일하게 NFC 정규화함
-    password = unicodedata.normalize("NFC", password.strip())
-    salt = os.urandom(16)
-    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt,
-                     iterations=PBKDF2_ITERATIONS)
-    key = kdf.derive(password.encode("utf-8"))
-    iv = os.urandom(12)
-    ct = AESGCM(key).encrypt(iv, json.dumps(payload, ensure_ascii=False).encode("utf-8"), None)
+def collect_codes(token):
+    """접속 코드 DB → [{name, code}]"""
+    out = []
+    try:
+        for pg in core.notion_query_all(core.CODES_DB_ID, token):
+            name = core.get_text(pg, "이름")
+            code = "".join(
+                t.get("plain_text", "")
+                for t in (pg["properties"].get("코드") or {}).get("rich_text") or []).strip()
+            if name and code:
+                out.append({"name": name, "code": code})
+    except Exception as e:
+        print("접속 코드 DB 읽기 실패:", e)
+    return out
+
+
+def derive_key(code, salt):
+    code = unicodedata.normalize("NFC", code.strip())
+    return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt,
+                      iterations=PBKDF2_ITERATIONS).derive(code.encode("utf-8"))
+
+
+def encrypt(payload, codes):
+    """봉투 암호화: 데이터는 무작위 키 K로 잠그고, K를 각 팀원 코드로 감싸서 보관"""
     b64 = lambda b: base64.b64encode(b).decode("ascii")
-    return {"v": 1, "iter": PBKDF2_ITERATIONS, "salt": b64(salt), "iv": b64(iv), "ct": b64(ct)}
+    data_key = os.urandom(32)
+    iv = os.urandom(12)
+    ct = AESGCM(data_key).encrypt(iv, json.dumps(payload, ensure_ascii=False).encode("utf-8"), None)
+
+    wraps = []
+    for c in codes:
+        salt = os.urandom(16)
+        wiv = os.urandom(12)
+        wct = AESGCM(derive_key(c["code"], salt)).encrypt(wiv, data_key, None)
+        wraps.append({"name": c["name"], "salt": b64(salt), "iv": b64(wiv), "ct": b64(wct)})
+
+    return {"v": 2, "iter": PBKDF2_ITERATIONS, "iv": b64(iv), "ct": b64(ct), "wraps": wraps}
 
 
 def collect_clients(token):
@@ -168,10 +194,19 @@ def collect_accounts(token):
 def main():
     token = os.environ.get("NOTION_TOKEN")
     db_id = os.environ.get("NOTION_DATABASE_ID")
-    password = os.environ.get("SITE_PASSWORD")
-    if not token or not db_id or not password:
-        print("NOTION_TOKEN, NOTION_DATABASE_ID, SITE_PASSWORD 환경변수가 필요합니다.")
+    if not token or not db_id:
+        print("NOTION_TOKEN, NOTION_DATABASE_ID 환경변수가 필요합니다.")
         sys.exit(1)
+
+    codes = collect_codes(token)
+    if not codes:
+        # 접속 코드 DB를 못 읽으면 기존 단일 비밀번호로 대체 (안전장치)
+        password = os.environ.get("SITE_PASSWORD")
+        if not password:
+            print("접속 코드가 없고 SITE_PASSWORD도 없어 중단합니다.")
+            sys.exit(1)
+        codes = [{"name": "관리자", "code": password}]
+        print("접속 코드 DB가 비어 있어 SITE_PASSWORD 단일 코드로 빌드합니다.")
 
     out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs")
     os.makedirs(out_dir, exist_ok=True)
@@ -186,8 +221,9 @@ def main():
         "accounts": collect_accounts(token),
     }
     with open(os.path.join(out_dir, "data.json"), "w") as f:
-        json.dump(encrypt(payload, password), f)
-    print("docs/data.json 생성 완료 (영상 {}개, 암호화됨)".format(len(items)))
+        json.dump(encrypt(payload, codes), f)
+    print("docs/data.json 생성 완료 (영상 {}개, 접속 코드 {}개, 암호화됨)".format(
+        len(items), len(codes)))
 
 
 if __name__ == "__main__":

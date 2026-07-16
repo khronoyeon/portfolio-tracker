@@ -55,7 +55,16 @@
       "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '업로드 공백 경고 제거 *)",
       "Bash(python3 -m py_compile update_stats.py monthly_report.py weekly_briefing.py build_site.py collect_followers.py)",
       "Bash(python3 -c ' *)",
-      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '노션을 유니콘하우스 워크스페이스로 이전 \\(DB ID·부모 페이지 교체\\) *)"
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '노션을 유니콘하우스 워크스페이스로 이전 \\(DB ID·부모 페이지 교체\\) *)",
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '버셀 배포 설정 추가 *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"https://unicornhouse-portfolio.vercel.app/\")",
+      "Bash(curl -s \"https://unicornhouse-portfolio.vercel.app/\")",
+      "Bash(curl -s -o /dev/null -w \"data.json: HTTP %{http_code}\\\\n\" \"https://unicornhouse-portfolio.vercel.app/data.json\")",
+      "Bash(curl -s -o /dev/null -w \"logo: HTTP %{http_code}\\\\n\" \"https://unicornhouse-portfolio.vercel.app/logo.png\")",
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '팀원별 입장 코드\\(봉투 암호화\\) + 접속 기록 서버 함수 *)",
+      "Bash(curl -s \"https://unicornhouse-portfolio.vercel.app/data.json\")",
+      "Bash(python3 -c \"import json,sys; b=json.load\\(sys.stdin\\); print\\('버셀 반영: v'+str\\(b.get\\('v'\\)\\), '| wraps:', [w['name'] for w in b.get\\('wraps',[]\\)]\\)\")",
+      "Bash(curl -s -X POST \"https://unicornhouse-portfolio.vercel.app/api/log\" -H \"Content-Type: application/json\" -d '{\"name\":\"테스트\"}')"
     ]
   }
 }
