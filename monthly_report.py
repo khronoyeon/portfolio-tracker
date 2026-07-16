@@ -80,6 +80,7 @@ def main():
             "client": core.get_select(page, "클라이언트") or "미지정",
             "platform": core.get_select(page, "플랫폼") or "기타",
             "planner": core.get_select(page, "기획자"),
+            "shooter": core.get_select(page, "촬영자"),
             "editor": core.get_select(page, "편집자"),
             "views": views,
             "likes": (p.get("좋아요") or {}).get("number") or 0,
@@ -103,7 +104,7 @@ def main():
 
     by_member = {}
     for i in items:
-        for role, name in (("기획", i["planner"]), ("편집", i["editor"])):
+        for role, name in (("기획", i["planner"]), ("촬영", i["shooter"]), ("편집", i["editor"])):
             if not name:
                 continue
             m = by_member.setdefault((name, role), {"n": 0, "views": 0})

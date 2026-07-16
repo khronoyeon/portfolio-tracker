@@ -62,6 +62,7 @@ def main():
             "링크": {"url": {}},
             "클라이언트": {"select": {"options": []}},
             "기획자": {"select": {"options": []}},
+            "촬영자": {"select": {"options": []}},
             "편집자": {"select": {"options": []}},
             "플랫폼": {
                 "select": {
