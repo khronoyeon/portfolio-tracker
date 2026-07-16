@@ -133,6 +133,12 @@ header .h-sub b{color:var(--tx2);font-weight:600;font-variant-numeric:tabular-nu
 .hof-row .hr-title{flex:1;min-width:0;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hof-row .hr-cl{font-size:11px;color:var(--tx3);font-weight:600;white-space:nowrap}
 .hof-row .hr-views{font-size:13.5px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hof-plat{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:800;margin:22px 2px 12px}
+.hof-plat:first-child{margin-top:0}
+.hof-plat .pdot{width:8px;height:8px;border-radius:50%}
+.hof-plat .pdot.yt{background:#FF0000}
+.hof-plat .pdot.ig{background:#DD2A7B}
+.hof-plat .micro{margin-left:2px}
 
 .cl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px}
 .cl-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 19px;cursor:pointer;transition:all .15s}
@@ -340,7 +346,7 @@ footer{text-align:center;color:var(--tx3);font-size:12px;font-weight:500;padding
         <div id="platchart"></div>
       </div>
     </div>
-    <div class="sec"><h2>🏆 명예의 전당</h2><span class="micro">역대 TOP 10</span></div>
+    <div class="sec"><h2>🏆 명예의 전당</h2><span class="micro">플랫폼별 역대 TOP 10</span></div>
     <div id="hof"></div>
 
     <div class="sec"><h2>클라이언트</h2><span class="micro" id="clcnt"></span></div>
@@ -673,32 +679,45 @@ function syncURL(){
   history.replaceState(null,"",h?"#"+h:location.pathname+location.search);
 }
 
-/* ---------- 명예의 전당 ---------- */
+/* ---------- 명예의 전당 (플랫폼별) ---------- */
+const HOF_PLATS=[["인스타그램","hofig","ig"],["유튜브","hofyt","yt"]];
+function hofTop(plat){
+  return DATA.items.filter(i=>i.platform===plat).sort((a,b)=>b.views-a.views).slice(0,10);
+}
 function renderHof(){
-  const top=[...DATA.items].sort((a,b)=>b.views-a.views).slice(0,10);
-  if(!top.length){$("#hof").innerHTML='<div class="empty">영상이 쌓이면 역대 TOP 10이 표시돼요</div>';return}
   const src=i=>i.th?esc(i.th):i.yt?`https://i.ytimg.com/vi/${i.yt}/hqdefault.jpg`:null;
-  const t3=top.slice(0,3),rest=top.slice(3);
-  let html='<div class="hof-top">'+t3.map((i,idx)=>`
-    <div class="hof-card${idx===0?" first":""}" id="hof${idx}">
-      <div class="hof-thumb">${src(i)?`<img loading="lazy" src="${src(i)}" alt="">`:""}
-        <div class="hof-rank">${idx+1}</div></div>
-      <div class="hof-body">
-        <div class="hof-title">${esc(i.title)}</div>
-        <div class="hof-meta"><span class="hof-views">${fmt(i.views)}</span>
-          <span class="hof-sub">${esc(i.client)}${i.first48!=null?" · 초동 "+fmt(i.first48):""}</span></div>
-      </div>
-    </div>`).join("")+"</div>";
-  html+=rest.map((i,idx)=>`
-    <div class="hof-row" id="hof${idx+3}">
-      <span class="hr-num">${String(idx+4).padStart(2,"0")}</span>
-      ${src(i)?`<img loading="lazy" src="${src(i)}" alt="">`:"<img alt=''>"}
-      <span class="hr-title">${esc(i.title)}</span>
-      <span class="hr-cl">${esc(i.client)}</span>
-      <span class="hr-views">${fmt(i.views)}</span>
-    </div>`).join("");
-  $("#hof").innerHTML=html;
-  top.forEach((i,idx)=>{const el=document.getElementById("hof"+idx);if(el)el.onclick=()=>openModal(i)});
+  let html="";
+  HOF_PLATS.forEach(([plat,prefix,dot])=>{
+    const top=hofTop(plat);
+    if(!top.length)return;
+    const t3=top.slice(0,3),rest=top.slice(3);
+    html+=`<div class="hof-plat"><span class="pdot ${dot}"></span>${plat}<span class="micro">TOP 10</span></div>`;
+    html+='<div class="hof-top">'+t3.map((i,idx)=>`
+      <div class="hof-card${idx===0?" first":""}" id="${prefix}${idx}">
+        <div class="hof-thumb">${src(i)?`<img loading="lazy" src="${src(i)}" alt="">`:""}
+          <div class="hof-rank">${idx+1}</div></div>
+        <div class="hof-body">
+          <div class="hof-title">${esc(i.title)}</div>
+          <div class="hof-meta"><span class="hof-views">${fmt(i.views)}</span>
+            <span class="hof-sub">${esc(i.client)}${i.first48!=null?" · 초동 "+fmt(i.first48):""}</span></div>
+        </div>
+      </div>`).join("")+"</div>";
+    html+=rest.map((i,idx)=>`
+      <div class="hof-row" id="${prefix}${idx+3}">
+        <span class="hr-num">${String(idx+4).padStart(2,"0")}</span>
+        ${src(i)?`<img loading="lazy" src="${src(i)}" alt="">`:"<img alt=''>"}
+        <span class="hr-title">${esc(i.title)}</span>
+        <span class="hr-cl">${esc(i.client)}</span>
+        <span class="hr-views">${fmt(i.views)}</span>
+      </div>`).join("");
+  });
+  $("#hof").innerHTML=html||'<div class="empty">영상이 쌓이면 플랫폼별 TOP 10이 표시돼요</div>';
+  HOF_PLATS.forEach(([plat,prefix])=>{
+    hofTop(plat).forEach((i,idx)=>{
+      const el=document.getElementById(prefix+idx);
+      if(el)el.onclick=()=>openModal(i);
+    });
+  });
 }
 
 /* ---------- 클라이언트 보드 ---------- */
