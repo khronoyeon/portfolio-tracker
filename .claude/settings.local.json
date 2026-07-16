@@ -52,7 +52,10 @@
       "Bash(GIT_EDITOR=true git rebase --continue)",
       "Bash(git rebase *)",
       "Bash(python3 -m py_compile weekly_briefing.py)",
-      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '업로드 공백 경고 제거 *)"
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '업로드 공백 경고 제거 *)",
+      "Bash(python3 -m py_compile update_stats.py monthly_report.py weekly_briefing.py build_site.py collect_followers.py)",
+      "Bash(python3 -c ' *)",
+      "Bash(git -c user.name=khronoyeon -c user.email=khronox.plus@gmail.com commit -q -m '노션을 유니콘하우스 워크스페이스로 이전 \\(DB ID·부모 페이지 교체\\) *)"
     ]
   }
 }

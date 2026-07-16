@@ -16,7 +16,7 @@ import sys
 import update_stats as core
 
 # 리포트 페이지를 생성할 부모 페이지 ("유니콘하우스 숏폼 데이터베이스")
-PARENT_PAGE_ID = "3961e1fb-afb6-8026-8be1-dae2480e3edc"
+PARENT_PAGE_ID = "fa02e440-0540-83bd-be7c-810717bb95f8"
 
 
 def txt(s):

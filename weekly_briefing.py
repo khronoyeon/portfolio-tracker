@@ -19,7 +19,7 @@ import time
 import update_stats as core
 from monthly_report import txt, heading, bullet, paragraph, table
 
-PARENT_PAGE_ID = "3961e1fb-afb6-8026-8be1-dae2480e3edc"
+PARENT_PAGE_ID = "fa02e440-0540-83bd-be7c-810717bb95f8"
 
 
 def kst_today():
