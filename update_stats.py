@@ -202,6 +202,8 @@ def fetch_instagram_stats(urls, apify_token):
 
     result = {}
     for item in items:
+        if item.get("error"):
+            continue  # 삭제·비공개 등으로 열리지 않은 게시물 (조회수 0으로 기록되지 않게 제외)
         code = item.get("shortCode") or instagram_shortcode(item.get("url") or "")
         if not code:
             continue
@@ -240,6 +242,13 @@ FULL_COLLECT_WEEKDAY = 0  # 0 = 월요일 (UTC 기준, KST 오전 9시 실행 �
 WATCH_MAX_DAYS = 7
 
 FIRST48_HOURS = 48  # 초동 조회수 측정 시점 (업로드 후 시간)
+
+# 떡상/부진 알림 (슬랙): 같은 계정의 다른 영상 초동 조회수 중앙값(평소 초동)과 비교
+SURGE_RATIO = 3.0        # 업로드 48시간 이내에 평소 초동의 3배 돌파 → 🔥 터지는 중
+SURGE_MIN_VIEWS = 5_000  # 소규모 계정의 잔잔한 변동은 제외
+SLUMP_RATIO = 0.3        # 초동 조회수가 평소의 30% 미만 → 📉 초동 부진
+SLUMP_MIN_BASE = 1_000   # 평소 초동이 이보다 작은 계정은 제외
+BASELINE_MIN_POSTS = 3   # 비교할 다른 영상이 이만큼은 있어야 판단
 
 
 def upload_ts_of(date_str):
@@ -290,6 +299,35 @@ def crossed_milestones(prev_views, new_views):
     if prev_views is None:
         return []  # 첫 수집(과거 영상 등록 시점)에는 알림 생략
     return [m for m in MILESTONES if prev_views < m <= new_views]
+
+
+def account_key(page):
+    """같은 계정 영상끼리 묶는 키: 인스타 계정명(없으면 링크 속 계정명) → 없으면 클라이언트"""
+    link = prop_url(page, "링크") or ""
+    plat = "유튜브" if youtube_video_id(link) else "인스타그램"
+    m = re.search(r"instagram\.com/([A-Za-z0-9_.]+)/(?:reel|reels|p|tv)/", link)
+    who = get_text(page, "계정").lower() or (m.group(1).lower() if m else None) \
+        or get_select(page, "클라이언트")
+    return (plat, who) if who else None
+
+
+def first48_baselines(pages):
+    """계정 키 → [(page_id, 초동 조회수)]"""
+    out = {}
+    for pg in pages:
+        v, key = prop_number(pg, "초동 조회수"), account_key(pg)
+        if v and key:
+            out.setdefault(key, []).append((pg["id"], v))
+    return out
+
+
+def usual_first48(baselines, page):
+    """이 영상을 뺀 같은 계정 영상들의 초동 조회수 중앙값 (표본 부족 시 None)"""
+    vals = sorted(v for pid, v in baselines.get(account_key(page), []) if pid != page["id"])
+    if len(vals) < BASELINE_MIN_POSTS:
+        return None
+    mid = len(vals) // 2
+    return vals[mid] if len(vals) % 2 else (vals[mid - 1] + vals[mid]) / 2
 
 
 def milestone_label(m):
@@ -422,6 +460,7 @@ def main():
 
     pages = notion_query_all(db_id, token)
     print("노션 페이지 {}개 조회".format(len(pages)))
+    baselines = first48_baselines(pages)  # 집중 관찰 모드로 대상을 좁히기 전에 전체 기준으로 계산
 
     # 오래된 인스타 영상은 월요일에만 수집 (Apify 비용 절약, FORCE_ALL=1 로 강제 전체 수집)
     now_ts = int(time.time())
@@ -501,9 +540,31 @@ def main():
         props, milestones = build_properties(page, platform, stats)
         notion_update_page(page["id"], props, token)
         updated += 1
+        title = get_text(page, "제목") or stats.get("title") or link
+        client = get_select(page, "클라이언트") or "미지정"
+        usual = usual_first48(baselines, page)
+        if usual:
+            date = (((page["properties"].get("업로드 날짜") or {}).get("date")) or {}).get("start") \
+                or stats.get("published")
+            up_ts = upload_ts_of(date) if date else None
+            age_h = (int(time.time()) - up_ts) / 3600 if up_ts is not None else None
+            # 🔥 업로드 48시간 이내에 평소 초동의 3배를 처음 넘은 순간 (직전 수집 대비 돌파 → 1회만)
+            line = max(usual * SURGE_RATIO, SURGE_MIN_VIEWS)
+            if age_h is not None and age_h <= FIRST48_HOURS \
+                    and (prev_views or 0) < line <= stats["views"]:
+                alerts.append(
+                    ":fire: *터지는 중!*  {} ({}) — 업로드 {}시간 만에 {:,}회"
+                    " (이 계정 평소 초동 {:,}회의 {:.1f}배)\n{}".format(
+                        title, client, max(1, round(age_h)), stats["views"],
+                        round(usual), stats["views"] / usual, link))
+            # 📉 초동 조회수가 처음 기록되는 순간 평소보다 크게 낮으면 (1회만)
+            first48 = (props.get("초동 조회수") or {}).get("number")
+            if first48 is not None and usual >= SLUMP_MIN_BASE and first48 < usual * SLUMP_RATIO:
+                alerts.append(
+                    ":chart_with_downwards_trend: *초동 부진*  {} ({}) — 48시간 {:,}회"
+                    " (평소 {:,}회의 {}%) · 노출 제한(쉐도우밴) 여부 확인 필요\n{}".format(
+                        title, client, first48, round(usual), round(first48 / usual * 100), link))
         for m in milestones:
-            title = get_text(page, "제목") or stats.get("title") or link
-            client = get_select(page, "클라이언트") or "미지정"
             alerts.append(
                 ":tada: *{} 돌파!*  {} ({}) — 현재 {:,}회\n{}".format(
                     milestone_label(m), title, client, stats["views"], link))
