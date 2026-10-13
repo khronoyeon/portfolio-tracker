@@ -311,7 +311,10 @@ def send_slack(webhook_url, lines):
     if not webhook_url or not lines:
         return
     try:
-        http_json(webhook_url, method="POST", payload={"text": "\n".join(lines)})
+        try:
+            http_json(webhook_url, method="POST", payload={"text": "\n".join(lines)})
+        except ValueError:
+            pass  # 슬랙은 JSON이 아닌 "ok" 텍스트로 응답 — 전송은 성공
         print("슬랙 알림 전송: {}건".format(len(lines)))
     except Exception as e:
         print("슬랙 알림 실패 (수집은 정상 완료):", e)
