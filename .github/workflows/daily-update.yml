@@ -33,6 +33,15 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: python update_stats.py
 
+      - name: 인스타 계정 접근 상태 점검 (비활성화 알림)
+        continue-on-error: true   # 점검이 실패해도 대시보드 갱신은 계속
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: python check_accounts.py
+
       - name: 대시보드 데이터 생성 (암호화)
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}

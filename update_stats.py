@@ -219,6 +219,7 @@ def fetch_instagram_stats(urls, apify_token):
             "title": caption[0][:80] if caption else None,
             "published": (item.get("timestamp") or "")[:10] or None,
             "thumbnail": item.get("displayUrl"),
+            "owner": (item.get("ownerUsername") or "").lower() or None,
         }
     return result
 
@@ -398,6 +399,9 @@ def build_properties(page, platform, stats):
         props["썸네일"] = {"url": stats["thumbnail"][:1900]}
     if stats.get("title") and prop_title_empty(page, "제목"):
         props["제목"] = {"title": [{"text": {"content": stats["title"][:200]}}]}
+    # 인스타 게시물의 계정명 기록 → check_accounts.py가 계정 접근 상태 점검에 사용
+    if stats.get("owner") and get_text(page, "계정") != stats["owner"]:
+        props["계정"] = {"rich_text": [{"text": {"content": stats["owner"]}}]}
     if stats.get("published") and prop_date_empty(page, "업로드 날짜"):
         props["업로드 날짜"] = {"date": {"start": stats["published"]}}
     return props, milestones
